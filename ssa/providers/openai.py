@@ -105,16 +105,21 @@ class OpenAIProvider(BaseImageEditingMixin):
 
     def _initialize_client(self):
         """Initializes and configures the OpenAI client."""
-        api_key_to_use = self._api_key or get_secret("OPENAI_API_KEY")
-        if not api_key_to_use:
-            raise ValueError("OPENAI_API_KEY must be set.")
+        # Try to get API key from explicit parameter or environment variable
+        try:
+            api_key_to_use = self._api_key or get_secret("OPENAI_API_KEY")
+        except ValueError:
+            # Fall back to default OpenAI credential resolution (env vars, config file)
+            log.info("OPENAI_API_KEY not found in environment, using OpenAI's default credential resolution")
+            api_key_to_use = None
 
-        # Legacy support (might be needed for some setups)
-        openai.api_key = (
-            api_key_to_use  # This line might be required by the openai library
-        )
-
-        return OpenAI(api_key=api_key_to_use)
+        if api_key_to_use:
+            # Legacy support (might be needed for some setups)
+            openai.api_key = api_key_to_use
+            return OpenAI(api_key=api_key_to_use)
+        else:
+            # Let OpenAI SDK handle credential resolution (checks OPENAI_API_KEY env var, config files, etc.)
+            return OpenAI()
 
     def call(
         self,

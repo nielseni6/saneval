@@ -46,7 +46,14 @@ class GeminiProvider:
     def __init__(self, version=DEFAULT_VERSION, config_overrides=None):
         self.version = version
         # Initialize the google.genai client
-        self.client = genai.Client(api_key=get_secret("GOOGLE_API_KEY"))
+        # Try to get API key from environment, otherwise use application default credentials
+        try:
+            api_key = get_secret("GOOGLE_API_KEY")
+            self.client = genai.Client(api_key=api_key)
+        except ValueError:
+            # Fall back to application default credentials (gcloud auth application-default login)
+            log.info("GOOGLE_API_KEY not found, using application default credentials")
+            self.client = genai.Client()
 
         self.config = apply_overrides(SUPPORTED_VERSIONS[version], config_overrides)
         self.max_retries = self.config.max_retries

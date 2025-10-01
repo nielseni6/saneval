@@ -1,11 +1,11 @@
 import json
 from typing import Any, Dict, List
 
+import boto3
 from botocore.exceptions import ClientError
 from PIL import Image
 from pydantic import BaseModel
 
-# from ssa.aws import boto_client, setup_aws
 from ssa.schemas import validate_response_against_schema
 from ssa.utils.images import encode_image
 from ssa.utils.logging import get_log
@@ -61,8 +61,8 @@ class BedrockProvider:
             raise ValueError(f"Unsupported Bedrock Claude version: {version}")
 
         self.config = apply_overrides(SUPPORTED_VERSIONS[version], config_overrides)
-        setup_aws()  # Ensure AWS is properly configured
-        self.client = boto_client("bedrock-runtime")
+        # Use boto3 directly - it will use AWS credentials from environment, config, or IAM role
+        self.client = boto3.client("bedrock-runtime")
 
     def _prepare_messages(self, query, image=None):
         """Prepare messages in Claude's format"""
