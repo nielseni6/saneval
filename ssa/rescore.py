@@ -159,7 +159,6 @@ def re_score(
     scoring_keys,
     bench_config_overrides,
     execution_config_overrides=None,
-    on_cloud=False,
 ):
     """
     Rescoring has been disabled as it depends on MLflow.
