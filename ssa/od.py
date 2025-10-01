@@ -128,12 +128,25 @@ class ObjectDetectionModel:
 
     def _setup_yoloworld_classes(self):
         """Setup classes for YOLO World model."""
-        self.model.set_classes(self.get_classes())
+        classes = self.get_classes()
+        if not classes:
+            logging.warning(
+                f"No classes found for {self.key}. Skipping class configuration. "
+                f"Model will use default classes or may not work properly."
+            )
+            return
+        self.model.set_classes(classes)
 
     def _setup_yoloeverything_classes(self, pred_classes):
         """Setup classes for YOLO Everything model."""
         if pred_classes != "unspecified":
             classes = self.get_classes()
+            if not classes:
+                logging.warning(
+                    f"No classes found for {self.key}. Skipping class configuration. "
+                    f"Model will use default classes or may not work properly."
+                )
+                return
             self.model.set_classes(classes, self.model.get_text_pe(classes))
 
     def __call__(self, image):
@@ -157,6 +170,13 @@ class ObjectDetectionModel:
         """
         if not self.config.get("supports_class_setting", False):
             logging.warning(f"Setting classes is not supported for {self.key} model.")
+            return
+
+        # Validate classes before setting
+        if not classes:
+            logging.warning(
+                f"Cannot set classes for {self.key}: empty class list provided."
+            )
             return
 
         # Switch-like dispatch for setting classes
