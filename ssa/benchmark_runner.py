@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional
 from ssa.scorers.model_scorer import (
     ModelScorer,
 )
-# from ssa.utils.aggregator import Aggregator
+from ssa.utils.aggregator import Aggregator
 from ssa.utils.base import (
     prepare_artifact_path,
     reset_run_dir,
@@ -148,7 +148,7 @@ def benchmark_model(
     for scorer in scorers.values():
         scorer.set_trace_collector(trace_collector)
 
-    run_results, active_benchmark_scorers = simple_eval(
+    agg, run_results, active_benchmark_scorers = simple_eval(
         images_dir,
         scorers,
         rescoring=rescoring,
@@ -157,9 +157,9 @@ def benchmark_model(
     )
 
     log.info(f"run_results:\n{pformat(run_results)}")
+    log.info(f"aggregates:\n{pformat(agg)}")
 
-    # Aggregate metrics from benchmark scorers
-    agg = {}
+    # Aggregate metrics from benchmark scorers (add additional metrics if needed)
     for scorer_key, benchmark_scorer in active_benchmark_scorers.items():
         try:
             scorer_agg_metrics = benchmark_scorer.aggregate_metrics(
@@ -542,7 +542,18 @@ def simple_eval_standardized(
     log.info(f"Completed evaluation of {total_prompts} prompts")
     log.info(f"Failed to load: {failed_gen}, Failed scoring: {failed_scoring_prompts}")
 
+    # Aggregate results
+    agg = {
+        "failed_gen": failed_gen,
+        "failed_scoring_prompts": failed_scoring_prompts,
+    }
+
+    # Get standardized aggregated metrics
+    standardized_agg = runner.compute_final_aggregates()
+    agg.update(standardized_agg)
+
     return (
+        agg,
         run_results,
         {scorer.scorer_name: scorer for scorer in standardized_scorers},
     )
