@@ -34,7 +34,7 @@ class SpatialNumeracyConfig(BaseScorerConfig):
     """Base configuration for Spatial and Numeracy scoring."""
 
     od_model: str = DEFAULT_OD_VERSION
-    od_classes: str = "data/pred_classes/compbench.json"
+    od_classes: str = "data/pred_classes/saneval.json"
     pred_classes: str = "from_json"
     debug: bool = True
     llm: str = DEFAULT_LLM_VERSION
@@ -83,7 +83,7 @@ class SpatialNumeracyBase(BaseScorer):
         obj_names_path = (
             Path(__file__).parent.parent
             / "thirdparty"
-            / "compbench"
+            / "saneval"
             / "object_names.txt"
         )
         with obj_names_path.open() as cls_file:
@@ -93,7 +93,7 @@ class SpatialNumeracyBase(BaseScorer):
         objects_path = (
             Path(__file__).parent.parent
             / "thirdparty"
-            / "compbench"
+            / "saneval"
             / "data"
             / "examples"
             / "new_objects.txt"
@@ -277,7 +277,7 @@ class SpatialNumeracyBase(BaseScorer):
                 obj_bounding_box_filtered,
                 instance_score_filtered,
                 title=f'Prompt: "{prompt}" ({self.get_scorer_name()}: {score:.2f})',
-                save_path=f"ssa/thirdparty/compbench/data/examples/debug/{self.get_scorer_name().lower()}/{self.config.od_model.replace('/', '')}/{self.config.pred_classes}/run-{self.current_run_time}/",
+                save_path=f"ssa/thirdparty/saneval/data/examples/debug/{self.get_scorer_name().lower()}/{self.config.od_model.replace('/', '')}/{self.config.pred_classes}/run-{self.current_run_time}/",
             )
             log.debug(f"Debug image saved to: {debug_img_path}")
 

@@ -51,14 +51,14 @@ def _load_number_words():
 
 
 def _load_plural_mappings():
-    """Load plural-to-singular mappings from the CompBench objects file."""
+    """Load plural-to-singular mappings from the SANEval objects file."""
     global _PLURAL_MAPPINGS_CACHE
     if _PLURAL_MAPPINGS_CACHE is None:
         try:
             objects_file_path = (
                 Path(__file__).parent.parent
                 / "thirdparty"
-                / "compbench"
+                / "saneval"
                 / "data"
                 / "examples"
                 / "new_objects.txt"
@@ -77,11 +77,11 @@ def _load_plural_mappings():
 
             _PLURAL_MAPPINGS_CACHE = plural_to_singular
             log.debug(
-                f"Loaded {len(_PLURAL_MAPPINGS_CACHE)} plural-to-singular mappings from CompBench"
+                f"Loaded {len(_PLURAL_MAPPINGS_CACHE)} plural-to-singular mappings from SANEval"
             )
         except Exception as e:
-            log.error(f"Could not load plural mappings from CompBench: {e}")
-            # If CompBench file is unavailable, use empty mappings and rely on regular pluralization rules
+            log.error(f"Could not load plural mappings from SANEval: {e}")
+            # If SANEval file is unavailable, use empty mappings and rely on regular pluralization rules
             _PLURAL_MAPPINGS_CACHE = {}
 
     return _PLURAL_MAPPINGS_CACHE
@@ -794,7 +794,7 @@ CRITICAL: Respond with ONLY valid JSON syntax. Do not include any explanations, 
 
     def _singularize(self, word: str) -> str:
         """
-        Convert plural words to singular form using CompBench mappings.
+        Convert plural words to singular form using SANEval mappings.
 
         Args:
             word: Word to singularize
@@ -804,12 +804,12 @@ CRITICAL: Respond with ONLY valid JSON syntax. Do not include any explanations, 
         """
         word = word.lower().strip()
 
-        # First check the CompBench plural mappings
+        # First check the SANEval plural mappings
         plural_mappings = _load_plural_mappings()
         if word in plural_mappings:
             return plural_mappings[word]
 
-        # Handle regular plurals for words not in CompBench
+        # Handle regular plurals for words not in SANEval
         if len(word) > 3 and word.endswith("s"):
             # Don't singularize words that end in 'ss', 'us', 'is'
             if not word.endswith(("ss", "us", "is")):

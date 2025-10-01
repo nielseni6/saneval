@@ -93,7 +93,7 @@ class ObjectDetectionModel:
         if json_file_path is None:
             current_script_path = os.path.dirname(os.path.abspath(__file__))
             self.categories_file_path = os.path.join(
-                current_script_path, "..", "data", "pred_classes", "compbench.json"
+                current_script_path, "..", "data", "pred_classes", "saneval.json"
             )
         else:
             self.categories_file_path = json_file_path

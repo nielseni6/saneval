@@ -120,9 +120,9 @@ def plot_bboxes(
     save_name = f"debug_image_{img_basename}.png"
     # Create directory for debug image if it doesn't exist
     if save_path is None:
-        debug_dir = os.path.dirname("ssa/thirdparty/compbench/data/examples/debug/")
+        debug_dir = os.path.dirname("ssa/thirdparty/saneval/data/examples/debug/")
         os.makedirs(debug_dir, exist_ok=True)
-        debug_save_path = f"ssa/thirdparty/compbench/data/examples/debug/{save_name}"
+        debug_save_path = f"ssa/thirdparty/saneval/data/examples/debug/{save_name}"
     else:
         debug_save_path = os.path.join(save_path, save_name)
         os.makedirs(os.path.dirname(debug_save_path), exist_ok=True)
@@ -163,7 +163,7 @@ def calculate_iou(bbox1, bbox2):
 
 def get_data(image_path, transform):
     # Import here to avoid circular import issues
-    from ssa.thirdparty.compbench.experts.obj_detection.generate_dataset import (
+    from ssa.thirdparty.saneval.experts.obj_detection.generate_dataset import (
         Dataset,
         collate_fn,
     )

@@ -2,7 +2,7 @@
 Spatial Scorer Implementation.
 
 This module provides spatial scoring functionality refactored from the original
-spatial_numeracy_eval.py CompBench implementation. It focuses specifically on
+spatial_numeracy_eval.py SANEval implementation. It focuses specifically on
 spatial relationship evaluation between objects in images.
 """
 
@@ -34,7 +34,7 @@ class SpatialScorer(SpatialNumeracyBase):
     """
     Spatial relationship scorer for evaluating spatial relationships between objects in images.
 
-    This class is refactored from the original CompBench implementation to focus specifically
+    This class is refactored from the original SANEval implementation to focus specifically
     on spatial scoring functionality, returning only the spatial2d score.
     """
 

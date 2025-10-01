@@ -27,7 +27,7 @@ class OdAttrBindConfig(BaseScorerConfig):
     od_model: str = DEFAULT_OD_VERSION
     vlm_model: str = DEFAULT_VLM_VERSION
     llm_model: str = DEFAULT_LLM_VERSION
-    od_classes: str = "data/pred_classes/compbench.json"
+    od_classes: str = "data/pred_classes/saneval.json"
     pred_classes: str = "from_json"  # "from_json", "from_prompt", or "unspecified"
     debug: bool = True
     include_explanation: bool = True
@@ -922,7 +922,7 @@ Respond with only a number between 0.0 and 1.0 (e.g., "0.8")."""
         Evaluate all images in a directory (placeholder for batch processing).
         """
         # This would be implemented for batch evaluation
-        # Similar to CompBench.eval_full_directory
+        # Similar to SANEval.eval_full_directory
         pass
 
     def create_eval_criteria(self, *args, **kwargs):

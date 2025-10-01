@@ -2,7 +2,7 @@
 Numeracy Scorer Implementation.
 
 This module provides numeracy scoring functionality refactored from the original
-spatial_numeracy_eval.py CompBench implementation. It focuses specifically on
+spatial_numeracy_eval.py SANEval implementation. It focuses specifically on
 counting and numerical evaluation of objects in images.
 """
 
@@ -31,7 +31,7 @@ class NumeracyScorer(SpatialNumeracyBase):
     """
     Numeracy scorer for evaluating object counting and numerical relationships in images.
 
-    This class is refactored from the original CompBench implementation to focus specifically
+    This class is refactored from the original SANEval implementation to focus specifically
     on numeracy scoring functionality, returning only the numeracy score.
     """
 

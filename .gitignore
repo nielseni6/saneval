@@ -210,3 +210,4 @@ __marimo__/
 results/
 *.pt
 *.ts
+data/debug/
