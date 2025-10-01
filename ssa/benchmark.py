@@ -18,13 +18,12 @@ from ssa.utils.logging import (
     process_log_args,
 )
 from ssa.utils.system import (
-    get_user,
     parse_config_arg,
 )
 
 
 def run_benchmarks(
-    experiment_name,
+    output_dir,
     scoring_keys,
     images_dir=None,
     bench_config_overrides=None,
@@ -33,7 +32,11 @@ def run_benchmarks(
     if not images_dir:
         raise ValueError("--images-dir is required for image loading mode")
 
+    if not output_dir:
+        raise ValueError("--output-dir is required to specify where to save results")
+
     log.info(f"Loading images from directory: {images_dir}")
+    log.info(f"Results will be saved to: {output_dir}")
 
     scorers = resolve_benchmark_config(scoring_keys, bench_config_overrides)
     log.info(f"Loaded scorers: {scorers}")
@@ -41,7 +44,7 @@ def run_benchmarks(
     log.info(heading(f"Benchmarking with images from: {images_dir}"))
     benchmark_model(
         images_dir,
-        experiment_name,
+        output_dir,
         scorers,
         scoring_config=bench_config_overrides,
         execution_config=execution_config_overrides,
@@ -55,10 +58,10 @@ if __name__ == "__main__":
         "Run Benchmarking.  See docs/BENCHMARKS.md for usage"
     )
     parser.add_argument(
-        "--experiment-name",
+        "--output-dir",
         type=str,
-        help="name for experiment",
-        default=f"{get_user()}-bench-ig",
+        required=True,
+        help="Directory where results will be saved (run_results.json, aggregates.json, reasoning_trace.json)",
     )
     parser.add_argument(
         "--bench-config",
@@ -93,7 +96,7 @@ if __name__ == "__main__":
     execution_config_overrides = parse_config_arg(args.execution_config)
 
     run_benchmarks(
-        args.experiment_name,
+        args.output_dir,
         args.scoring,
         args.images_dir,
         bench_config_overrides,

@@ -179,7 +179,7 @@ def simple_eval(
 
 def benchmark_model(
     images_dir,
-    experiment_name,
+    output_dir,
     scorers,
     rescoring=False,
     scoring_config=None,
@@ -189,11 +189,14 @@ def benchmark_model(
     Orchestrates a benchmark run and logs results.
     Loads images from directory, extracts prompts from filenames, evaluates with scorer setup, and logs artifacts.
     """
-    reset_run_dir()
-    name, config = get_config(images_dir, scorers, scoring_config, execution_config)
+    from pathlib import Path
 
-    run_id = unique_id(name=experiment_name, random_chars=8)
-    log.info(f"Run ID: {run_id} for Experiment: {experiment_name} (Run Name: {name})")
+    # Create output directory if it doesn't exist
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    name, config = get_config(images_dir, scorers, scoring_config, execution_config)
+    log.info(f"Saving results to: {output_dir}")
 
     # Create trace collector for this benchmark run
     trace_collector = ReasoningTraceCollector()
@@ -228,12 +231,12 @@ def benchmark_model(
     log.info(f"aggregates:\n{pformat(agg)}")
 
     # Save aggregated results
-    final_agg_path = prepare_artifact_path("aggregates", ".json", run_id)
+    final_agg_path = output_path / "aggregates.json"
     with open(final_agg_path, "w") as f:
         json.dump(agg, f, indent=4, sort_keys=True)
 
     # Save run results
-    final_run_result_path = prepare_artifact_path("run_result", ".json", run_id)
+    final_run_result_path = output_path / "run_results.json"
     cleaned_run_results = remove_circular_refs(run_results)
     with open(final_run_result_path, "w") as f:
         json.dump(cleaned_run_results, f, indent=4, sort_keys=True)
@@ -241,9 +244,7 @@ def benchmark_model(
     # Save reasoning traces
     reasoning_traces = trace_collector.get_traces()
     if reasoning_traces:
-        final_reasoning_trace_path = prepare_artifact_path(
-            "reasoning_trace", ".json", run_id
-        )
+        final_reasoning_trace_path = output_path / "reasoning_trace.json"
         with open(final_reasoning_trace_path, "w") as f:
             json.dump(
                 reasoning_traces,
@@ -259,7 +260,7 @@ def benchmark_model(
     if reasoning_traces:
         log.info(f"  - {final_reasoning_trace_path}")
 
-    return run_id
+    return str(output_dir)
 
 
 def remove_circular_refs(obj, seen=None):
