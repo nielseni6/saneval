@@ -3,7 +3,6 @@ from ssa.caching import (
     get_global_cache,
     setup_caching,
 )
-from ssa.providers.azure import AZURE_VLM_VERSIONS, AzureProvider
 from ssa.providers.bedrock import (
     SUPPORTED_VERSIONS as BEDROCK_SUPPORTED_VERSIONS,
 )
@@ -29,7 +28,6 @@ VLM_VERSIONS = {}
 VLM_VERSIONS.update({k: BedrockProvider for k in BEDROCK_SUPPORTED_VERSIONS})
 VLM_VERSIONS.update({k: GeminiProvider for k in GEMINI_SUPPORTED_VERSIONS})
 VLM_VERSIONS.update({k: OpenAIProvider for k in OPENAI_SUPPORTED_VERSIONS})
-VLM_VERSIONS.update({k: AzureProvider for k in AZURE_VLM_VERSIONS})
 VLM_VERSIONS.update({k: SagemakerProvider for k in SAGEMAKER_VLM_VERSIONS})
 
 DEFAULT_VLM_VERSION = GEMINI_2_5_FLASH

@@ -27,7 +27,6 @@ from ssa.utils.base import (
     reset_run_dir,
     unique_id,
 )
-from ssa.utils.costs import global_cost_tracker
 from ssa.utils.logging import log
 from ssa.utils.reasoning_trace import ReasoningTraceCollector, default_json_handler
 from ssa.utils.system import default_context, get_subconfigs
@@ -237,11 +236,10 @@ def remove_circular_refs(obj, seen=None):
 class ProcessingContext:
     """Context object to reduce argument count in _process_prompt_result."""
 
-    def __init__(self, runner, total_prompts, job_t0, cost_agg):
+    def __init__(self, runner, total_prompts, job_t0):
         self.runner = runner
         self.total_prompts = total_prompts
         self.job_t0 = job_t0
-        self.cost_agg = cost_agg
 
 
 def _process_prompt_result(
@@ -285,7 +283,6 @@ def _process_prompt_result(
         "running/percent_done": (
             float(pidx + 1) / context.total_prompts if context.total_prompts > 0 else 0
         ),
-        "running/cost": context.cost_agg.get_sum(),
         "running/duration": (time.time() - context.job_t0),
     }
 

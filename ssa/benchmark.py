@@ -10,7 +10,6 @@ from ssa.scoring import (
     SPATIAL,
     SCORING_METHODS,
 )
-# from ssa.utils.costs import global_cost_tracker
 from ssa.utils.logging import (
     add_log_args,
     heading,

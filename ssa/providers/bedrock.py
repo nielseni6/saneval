@@ -5,9 +5,8 @@ from botocore.exceptions import ClientError
 from PIL import Image
 from pydantic import BaseModel
 
-from ssa.aws import boto_client, setup_aws
+# from ssa.aws import boto_client, setup_aws
 from ssa.schemas import validate_response_against_schema
-from ssa.utils.costs import report_cost
 from ssa.utils.images import encode_image
 from ssa.utils.logging import get_log
 from ssa.utils.system import apply_overrides
@@ -19,8 +18,6 @@ CLAUDE_4_OPUS = "bedrock/claude-4-opus"
 CLAUDE_4_SONNET = "bedrock/claude-4-sonnet"
 CLAUDE_37_SONNET = "bedrock/claude-3-7-sonnet"
 
-MILLION = 1000000
-
 
 class BedrockConfig(BaseModel):
     model_id: str = ""
@@ -28,47 +25,25 @@ class BedrockConfig(BaseModel):
     temperature: float = 0.0
     max_tokens: int = 4096
     system_prompt: str = ""
-    # Pricing per million tokens - https://aws.amazon.com/bedrock/pricing/
-    cost_mm_input: float = 3.0
-    cost_mm_output: float = 15.0
 
 
-# See https://aws.amazon.com/bedrock/pricing/ for latest pricing
+# See https://docs.aws.amazon.com/bedrock/ for model configurations
 SUPPORTED_VERSIONS = {
     CLAUDE_4_OPUS: BedrockConfig(
         model_id="us.anthropic.claude-opus-4-20250514-v1:0",  # Inference profile ID
-        cost_mm_input=60.0,
-        cost_mm_output=300.0,
         max_tokens=8192,
     ),
     CLAUDE_4_SONNET: BedrockConfig(
         model_id="us.anthropic.claude-sonnet-4-20250514-v1:0",  # Inference profile ID
-        cost_mm_input=15.0,
-        cost_mm_output=75.0,
         max_tokens=8192,
     ),
     CLAUDE_37_SONNET: BedrockConfig(
         model_id="us.anthropic.claude-3-7-sonnet-20250219-v1:0",  # Inference profile ID
-        cost_mm_input=10.0,
-        cost_mm_output=50.0,
         max_tokens=8192,
     ),
 }
 
 DEFAULT_VERSION = CLAUDE_4_SONNET
-
-
-def get_cost(config, usage_data):
-    """Calculate cost based on token usage"""
-    input_tokens = usage_data.get("input_tokens", 0)
-    output_tokens = usage_data.get("output_tokens", 0)
-    cost = (input_tokens * config.cost_mm_input / MILLION) + (
-        output_tokens * config.cost_mm_output / MILLION
-    )
-    log.debug(
-        f"Cost Calc input_tokens={input_tokens} output_tokens={output_tokens} cost={cost}"
-    )
-    return cost
 
 
 def fix_json_schema(schema):
@@ -190,11 +165,6 @@ class BedrockProvider:
 
             # Parse response
             response_body = json.loads(response["body"].read())
-
-            # Calculate cost
-            usage = response_body.get("usage", {})
-            cost = get_cost(self.config, usage)
-            report_cost(cost, name=f"bedrock_claude_{self.version}")
 
             # Extract content
             if schema and tool_config:

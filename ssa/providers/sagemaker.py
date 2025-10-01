@@ -14,16 +14,10 @@ from pydantic import ValidationError as PydanticValidationError
 from ssa.aws import (
     setup_aws,
 )
-from ssa.aws.pricing import (
-    AWS_ML_G4DN_XLARGE_COST,
-    AWS_ML_G6E_XLARGE_COST,
-    AWS_ML_M5_LARGE_COST,
-)
 from ssa.aws.sagemaker import LOCAL_DEBUG_URL, invoke_endpoint
 from ssa.interfaces import BaseImageEditingMixin
 from ssa.schemas import validate_response_against_schema
 from ssa.utils.aspect_ratios import resolve_aspect_ratio_and_dimensions
-from ssa.utils.costs import report_cost
 from ssa.utils.http import RetryDecorator
 from ssa.utils.images import resize_image
 from ssa.utils.logging import get_log
@@ -49,8 +43,6 @@ AWS_INTERNVL_25_8B = "aws/internvl-25-8b"
 
 class SagemakerConfig(BaseModel):
     endpoint: str = None
-    cost_per_img: float = None
-    cost_per_hour: float = None
 
 
 class SagemakerIgConfig(SagemakerConfig):
@@ -121,47 +113,43 @@ class SagePickScoreConfig(SagemakerVlmConfig):
 
 
 SAGEMAKER_IG_VERSIONS = {
-    LOCAL_IG: SagemakerIgConfig(endpoint=LOCAL_DEBUG_URL, cost_per_hour=0.001),
+    LOCAL_IG: SagemakerIgConfig(endpoint=LOCAL_DEBUG_URL),
     AWS_MOCK_IG: SagemakerIgConfig(
-        endpoint="mock-ig-endpoint-001", cost_per_hour=AWS_ML_M5_LARGE_COST
+        endpoint="mock-ig-endpoint-001"
     ),
     AWS_PIXART_SIGMA_900m: SagePixartConfig(
         endpoint="pixart-sig900-endpoint-013",
-        cost_per_hour=AWS_ML_G6E_XLARGE_COST,
     ),
     AWS_SANA_1_0: SageSanaConfig(
-        endpoint="sana-10-endpoint-018", cost_per_hour=AWS_ML_G6E_XLARGE_COST
+        endpoint="sana-10-endpoint-018"
     ),
     AWS_SANA_1_5: SageSana15Config(
-        endpoint="sana-15-endpoint-001", cost_per_hour=AWS_ML_G6E_XLARGE_COST
+        endpoint="sana-15-endpoint-001"
     ),
     AWS_SANA_SPRINT: SageSanaSprintConfig(
-        endpoint="sana-sprint-endpoint-001", cost_per_hour=AWS_ML_G6E_XLARGE_COST
+        endpoint="sana-sprint-endpoint-001"
     ),
     AWS_KANDINSKY_3_1: SagemakerIgConfig(
-        endpoint="kandinsky-31-endpoint-007", cost_per_hour=AWS_ML_G6E_XLARGE_COST
+        endpoint="kandinsky-31-endpoint-007"
     ),
     AWS_SSA: SageSsaConfig(
-        endpoint="ssa-model-endpoint-006", cost_per_hour=AWS_ML_M5_LARGE_COST
+        endpoint="ssa-model-endpoint-006"
     ),
     AWS_SANA_1600M_CNET: SageSanaCtrlnetConfig(
-        endpoint="sana-1600m-cnet-endpoint-001", cost_per_hour=AWS_ML_G6E_XLARGE_COST
+        endpoint="sana-1600m-cnet-endpoint-001"
     ),
 }
 
 SAGEMAKER_VLM_VERSIONS = {
-    LOCAL_VLM: SagemakerVlmConfig(endpoint=LOCAL_DEBUG_URL, cost_per_hour=0.001),
+    LOCAL_VLM: SagemakerVlmConfig(endpoint=LOCAL_DEBUG_URL),
     AWS_QWEN_2_5_7B: SageQwenConfig(
         endpoint="qwen-25-7b-endpoint-005",
-        cost_per_hour=AWS_ML_G6E_XLARGE_COST,
     ),
     AWS_QWEN_2_5_7B_VLLM: SageQwenVllmConfig(
         endpoint="qwen-25-7b-vllm-endpoint-010",
-        cost_per_hour=AWS_ML_G6E_XLARGE_COST,
     ),
     AWS_INTERNVL_25_8B: SageInternVLConfig(
         endpoint="internvl-25-8b-endpoint-001",
-        cost_per_hour=AWS_ML_G6E_XLARGE_COST,
     ),
 }
 
@@ -169,7 +157,6 @@ SAGEMAKER_VLM_VERSIONS = {
 SAGEMAKER_OTHER_VERSIONS = {
     AWS_PICK_SCORE: SagePickScoreConfig(
         endpoint="pick-score-endpoint-002",
-        cost_per_hour=AWS_ML_G4DN_XLARGE_COST,
     )
 }
 
@@ -253,29 +240,6 @@ class SagemakerProvider(BaseImageEditingMixin):
         """Most Sagemaker providers do not support image editing."""
         return False
 
-    def report_call_cost(self, duration, metadata=None):
-        # Report costs
-        cost = 0.0
-        metadata = metadata or {}
-        if metadata_cost := metadata.get("cost"):
-            # if metadata.cost is returned we assume this includes all costs
-            # including the host/duration cost
-            log.debug(f"Sagemaker returned cost in metadata: {metadata_cost}")
-            cost += metadata_cost
-        elif metadata_dur := metadata.get("gpu_duration"):
-            log.debug(f"Sagemaker returned gpu_duration in metadata: {metadata_dur}")
-            cost += metadata_dur * (self.config.cost_per_hour / 3600)
-        else:
-            if self.config.cost_per_img:
-                cost += self.config.cost_per_img
-            if self.config.cost_per_hour:
-                cost += (self.config.cost_per_hour / 3600) * (duration)
-
-        if cost:
-            report_cost(cost, name=self.version)
-        else:
-            log.warning(f"Sagemaker {self} call had no defined costs {self.config}")
-
     def warmup(self, wait=False):
         try:
             invoke_endpoint(self.endpoint, {"warmup": True}, wait=wait)
@@ -306,9 +270,7 @@ class SagemakerProvider(BaseImageEditingMixin):
             if config_field not in SagemakerConfig.model_fields.keys():
                 request_data[config_field] = value
 
-        t0 = time.time()
         response = invoke_endpoint(self.endpoint, request_data)
-        t1 = time.time()
 
         # Decode response
         json_result = {}
@@ -336,9 +298,6 @@ class SagemakerProvider(BaseImageEditingMixin):
             metadata = json_result.get("metadata", {})
         else:
             raise Exception(f"Unrecognized response {content_type}: {response}")
-
-        # Report costs
-        self.report_call_cost(t1 - t0, metadata)
 
         # add metadata to image
         if image:

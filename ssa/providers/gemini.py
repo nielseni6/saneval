@@ -8,7 +8,6 @@ from PIL import Image
 from pydantic import BaseModel
 
 from ssa.schemas import validate_response_against_schema
-from ssa.utils.costs import report_cost
 from ssa.utils.logging import get_log
 from ssa.utils.secrets import get_secret
 from ssa.utils.system import apply_overrides
@@ -21,15 +20,10 @@ GEMINI_2_5_FLASH = "gemini/2.5-flash"
 GEMINI_2_5_PRO = "gemini/2.5-pro"
 
 
-MILLION = 1000000
-
-
 class GeminiConfig(BaseModel):
     key: str = ""
     max_retries: int = 7
     temperature: float = 0.5
-    cost_mm_input: float = 0.075
-    cost_mm_output: float = 0.30
 
 
 # see https://ai.google.dev/pricing
@@ -38,29 +32,14 @@ DEFAULT_VERSION = GEMINI_2_5_FLASH
 SUPPORTED_VERSIONS = {
     GEMINI_2_5_FLASH_LITE_PREV: GeminiConfig(
         key="gemini-2.5-flash-lite-preview-06-17",
-        cost_mm_input=0.10,
-        cost_mm_output=0.40,
     ),
     GEMINI_2_5_FLASH: GeminiConfig(
-        key="gemini-2.5-flash", cost_mm_input=0.30, cost_mm_output=2.50
+        key="gemini-2.5-flash"
     ),
     GEMINI_2_5_PRO: GeminiConfig(
-        key="gemini-2.5-pro", cost_mm_input=1.25, cost_mm_output=10.00
+        key="gemini-2.5-pro"
     ),
 }
-
-
-def get_cost(config, response):
-    """Calculate cost based on response usage_metadata"""
-    usage_meta = response.usage_metadata
-    input_tokens = getattr(usage_meta, "prompt_token_count", 0) or 0
-    output_tokens = getattr(usage_meta, "candidates_token_count", 0) or 0
-    thought_tokens = getattr(usage_meta, "thoughts_token_count", 0) or 0
-    output_tokens = output_tokens + thought_tokens
-    cost = (input_tokens * config.cost_mm_input / MILLION) + (
-        output_tokens * config.cost_mm_output / MILLION
-    )
-    return cost
 
 
 class GeminiProvider:
@@ -186,14 +165,6 @@ class GeminiProvider:
         except google_exceptions.InvalidArgument:
             log.error(f"Invalid argument, payload={payload} config={generation_config}")
             raise
-
-        cost = get_cost(self.config, response)
-        if not cost:
-            log.warning("Failed to get gemini cost from response metadata")
-            cost = 0.00105
-
-        # Approximate, todo parse costs from tokens in response
-        report_cost(cost, name=self.version)
 
         text = response.text
         if schema:

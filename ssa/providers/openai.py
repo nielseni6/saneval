@@ -9,7 +9,6 @@ from pydantic import BaseModel
 
 from ssa.interfaces import BaseImageEditingMixin
 from ssa.utils.aspect_ratios import resolve_aspect_ratio_and_dimensions
-from ssa.utils.costs import report_cost
 from ssa.utils.images import (
     encode_image,
     save_image_to_disk,
@@ -51,8 +50,6 @@ class OpenAIConfig(BaseModel):
     key: str = ""
     max_retries: int = 7
     temperature: float = 0
-    cost_mm_input: float = 0.15
-    cost_mm_output: float = 0.6
     supported_sizes: list[str] = OPENAI_SUPPORTED_SIZES
     supported_aspect_ratios: list[str] = OPENAI_SUPPORTED_ASPECT_RATIOS
 
@@ -64,39 +61,22 @@ class OpenAITi2iConfig(OpenAIConfig):
 class OpenAIO1Config(BaseModel):
     key: str = ""
     max_retries: int = 7
-    cost_mm_input: float = 15.0
-    cost_mm_output: float = 60.0
 
-
-MILLION = 1000000
 
 # https://openai.com/api/pricing/
 OPENAI_SUPPORTED_VERSIONS = {
-    GPT_4O: OpenAIConfig(key="gpt-4o", cost_mm_input=2.5, cost_mm_output=10.0),
-    GPT_4_5: OpenAIConfig(key="gpt-4.5-preview", cost_mm_input=75, cost_mm_output=150),
-    O1: OpenAIO1Config(key="o1", cost_mm_input=15, cost_mm_output=60),
+    GPT_4O: OpenAIConfig(key="gpt-4o"),
+    GPT_4_5: OpenAIConfig(key="gpt-4.5-preview"),
+    O1: OpenAIO1Config(key="o1"),
 }
 
 OPENAI_IG_VERSIONS = {
-    GPT_4O: OpenAIConfig(key="gpt-4o", cost_mm_input=2.5, cost_mm_output=10.0),
+    GPT_4O: OpenAIConfig(key="gpt-4o"),
 }
 
 OPENAI_I2I_SUPPORTED_MODELS = [
     GPT_4O,
 ]
-
-
-def get_cost(config, response):
-    """Calculate cost based on response usage"""
-    input_tokens = response.usage.prompt_tokens
-    output_tokens = response.usage.completion_tokens
-    cost = (input_tokens * config.cost_mm_input / MILLION) + (
-        output_tokens * config.cost_mm_output / MILLION
-    )
-    log.debug(
-        f"Cost Calc input_tokens={input_tokens} output_tokens={output_tokens} cost={cost}"
-    )
-    return cost
 
 
 def fix_json_schema(schema):
@@ -193,13 +173,6 @@ class OpenAIProvider(BaseImageEditingMixin):
             if not completion or not completion.choices:
                 log.error("No completion choices returned")
                 return None
-
-            # Report cost
-            try:
-                cost = get_cost(self.config, completion)
-                report_cost(cost, name=self.version)
-            except AttributeError:
-                log.warning("Failed to get OpenAI cost from response metadata")
 
             # Extract result
             message = completion.choices[0].message
