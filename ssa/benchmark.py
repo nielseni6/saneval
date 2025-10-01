@@ -57,7 +57,6 @@ def run_benchmarks(
     experiment_name,
     scoring_keys,
     corpus_keys,
-    email=None,
     max_retries=0,
     total_expected_tasks=0,
     asset_name=None,
@@ -113,14 +112,7 @@ def run_benchmarks(
             for model_key in model_keys:
                 for config_override in model_config_overrides:
                     task_idx += 1
-                    if email:
-                        command = (
-                            f"python ssa/benchmark.py --experiment-name {shlex.quote(experiment_name)} --corpus {shlex.quote(corpus_key)} "
-                            f"--model {shlex.quote(model_key)} --asset-name {shlex.quote(asset_name)} --asset-type {shlex.quote(asset_type)} "
-                            f"--email {shlex.quote(email)} --total-expected-tasks {total_expected_tasks}"
-                        )
-                    else:
-                        command = f"python ssa/benchmark.py --experiment-name {shlex.quote(experiment_name)} --corpus {shlex.quote(corpus_key)} --model {shlex.quote(model_key)}"
+                    command = f"python ssa/benchmark.py --experiment-name {shlex.quote(experiment_name)} --corpus {shlex.quote(corpus_key)} --model {shlex.quote(model_key)}"
                     command += f" --scoring {' '.join(scoring_keys)}"
                     if bench_config_overrides:
                         command += (
@@ -178,61 +170,19 @@ def run_benchmarks(
 
         log.info("Success!")
 
-        if email:
-            # Generate analysis content (works with both real and mock IG)
-            log.info("Generating analysis content for email...")
-
-            # Generate executive summary (shorter, high-level)
-            executive_summary = get_executive_summary(asset_type, asset_name)
-
-            # Generate detailed analysis
-            llm_analysis = get_detailed_analysis(
-                experiment_name,
-                asset_type,
-                asset_name,
-            )
-
-            # Send Email with both analyses
-            send_email_with_new_infographic(
-                experiment_name,
-                email,
-                total_expected_tasks,
-                asset_name,
-                asset_type,
-                CACHE_VERSION,
-                llm_analysis,
-                executive_summary,
-            )
-
 
 def run_ip_risk_audit_workflow(
     experiment_name,
-    email,
     asset_name,
     asset_type,
     enable_cache=False,
     **kwargs,
 ):
-    cache_path = get_cached_html_report_path(asset_name, asset_type, CACHE_VERSION)
-    if cache_path:
-        # Cache Found
-        log.info("Skipping benchmarking and initiating email composition.")
-        send_email_with_s3_html_report(email, asset_name, cache_path)
-        return
-
-    # Cache Missed
-    log.info("Infographic is not within S3")
-    log.info("Generating custom corpus and Running Benchmark")
-    corpora = generate_corpus(name=asset_name, asset_type=asset_type)
-    run_benchmarks(
-        corpus_keys=corpora,
-        email=email,
-        experiment_name=experiment_name,
-        asset_name=asset_name,
-        asset_type=asset_type,
-        enable_cache=enable_cache,
-        **kwargs,
-    )
+    """
+    IP risk audit workflow has been disabled (depends on removed features).
+    """
+    log.error("IP risk audit workflow is disabled (depends on removed features)")
+    raise NotImplementedError("IP risk audit workflow requires removed features")
 
 
 if __name__ == "__main__":
@@ -294,12 +244,6 @@ if __name__ == "__main__":
         help="Scoring methods to run, can be combined",
         default=[SPATIAL],
         choices=SCORING_METHODS,
-    )
-    parser.add_argument(
-        "--email",
-        type=str,
-        help="Email a report once all tasks complete.",
-        default=None,
     )
     parser.add_argument(
         "--on-cloud",
@@ -380,19 +324,17 @@ if __name__ == "__main__":
             args.asset_type,
             args.scoring,
             args.total_expected_tasks,
-            args.email,
         ]
     ):
         parser.error(
-            "--experiment-name, --asset-name, --asset-type, --total-expected-tasks, --email, and --scoring are required when running --custom-corpus."
+            "--experiment-name, --asset-name, --asset-type, --total-expected-tasks, and --scoring are required when running --custom-corpus."
         )
     else:
-        if args.email and args.custom_corpus:
+        if args.custom_corpus:
             run_ip_risk_audit_workflow(
                 model_keys=args.model,
                 experiment_name=args.experiment_name,
                 scoring_keys=args.scoring,
-                email=args.email,
                 max_retries=args.max_retries,
                 total_expected_tasks=args.total_expected_tasks,
                 asset_name=args.asset_name,
@@ -411,7 +353,6 @@ if __name__ == "__main__":
                 args.experiment_name,
                 args.scoring,
                 args.corpus,
-                args.email,
                 args.max_retries,
                 args.total_expected_tasks,
                 args.asset_name,
