@@ -1,0 +1,31 @@
+# Core dependencies
+pillow>=10.0.0
+torch>=2.0.0
+numpy>=1.24.0
+pyyaml>=6.0.0
+
+# Utilities
+tqdm>=4.65.0
+colorlog>=6.7.0
+pytz>=2023.3
+pydantic>=2.0.0
+
+# Visualization
+matplotlib>=3.7.0
+
+# Object Detection - YOLO models
+ultralytics>=8.0.0
+
+# MLflow (legacy imports still present in aggregator.py)
+mlflow>=2.8.0
+pandas>=2.0.0
+
+# Optional: For specific scorers
+# transformers>=4.30.0  # If using transformer-based models
+# opencv-python>=4.8.0  # If using OpenCV
+
+# IMPORTANT: Missing modules that need to be added:
+# - ssa.vlm (imported by scorers/od_attr_bind.py, scorers/spatial_numeracy_base.py)
+# - ssa.utils.costs (imported by benchmark.py, benchmark_runner.py)
+# - ssa.utils.secrets (imported by scorers/spatial_numeracy_base.py)
+# - ssa.utils.moe_sample_size (imported by utils/aggregator.py)

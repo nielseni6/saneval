@@ -1,0 +1,197 @@
+# Object Detection (od) model bank
+# This leverages different object detection models
+# to identify and localize objects in images
+
+# Object Detection models
+#  - yolov11      : YOLOv11 for general object detection
+#  - yolov12      : YOLOv12 for improved detection capabilities
+#  - yoloworld    : YOLOWorld for world-centric object detection
+#  - yoloe        : YOLOE for everything detection
+
+YOLOV11 = "yolo/v11"
+YOLOV12 = "yolo/v12"
+YOLOWORLD = "yolo/world"
+YOLOEVERYTHING = "yolo/e"  # YOLOE for everything detection
+
+DETECTION_MODELS = [
+    YOLOV11,
+    YOLOV12,
+    YOLOWORLD,
+    YOLOEVERYTHING,
+]
+DEFAULT_OD_VERSION = YOLOEVERYTHING
+
+import json
+import logging
+import os
+
+# Global dictionary mapping model types to their import functions
+MODEL_TYPE_IMPORTS = {
+    YOLOV11: lambda: __import__("ultralytics", fromlist=["YOLO"]).YOLO,
+    YOLOV12: lambda: __import__("ultralytics", fromlist=["YOLO"]).YOLO,
+    YOLOWORLD: lambda: __import__("ultralytics", fromlist=["YOLOWorld"]).YOLOWorld,
+    YOLOEVERYTHING: lambda: __import__("ultralytics", fromlist=["YOLOE"]).YOLOE,
+}
+
+
+def _get_yolo_class(model_type):
+    """Lazy import function for YOLO classes to avoid import-time warnings."""
+    if model_type not in MODEL_TYPE_IMPORTS:
+        raise ValueError(
+            f"Unknown model type: {model_type}. Supported types: {list(MODEL_TYPE_IMPORTS.keys())}"
+        )
+
+    return MODEL_TYPE_IMPORTS[model_type]()
+
+
+# Model configuration mapping - acts as a switch statement
+MODEL_CONFIGS = {
+    YOLOV11: {
+        "model_class": lambda: _get_yolo_class(YOLOV11),
+        "weights": "yolo11n.pt",
+        "supports_class_setting": False,
+        "supports_unspecified": False,
+    },
+    YOLOV12: {
+        "model_class": lambda: _get_yolo_class(YOLOV12),
+        "weights": "yolo12x.pt",
+        "supports_class_setting": False,
+        "supports_unspecified": False,
+    },
+    YOLOWORLD: {
+        "model_class": lambda: _get_yolo_class(YOLOWORLD),
+        "weights": "yolov8x-worldv2.pt",
+        "supports_class_setting": True,
+        "supports_unspecified": False,
+        "set_classes_on_init": True,
+    },
+    YOLOEVERYTHING: {
+        "model_class": lambda: _get_yolo_class(YOLOEVERYTHING),
+        "weights": "yoloe-11l-seg.pt",
+        "supports_class_setting": True,
+        "supports_unspecified": True,
+        "requires_text_pe": True,
+    },
+}
+
+
+class ObjectDetectionModel:
+    def __init__(self, key, pred_classes="from_json", json_file_path=None):
+        if key not in MODEL_CONFIGS:
+            raise ValueError(
+                f"Unrecognized OD {key}.\nKnown models: {list(MODEL_CONFIGS.keys())}"
+            )
+
+        self.key = key
+        self.config = MODEL_CONFIGS[key]
+        self._setup_categories_path(json_file_path)
+        self.model = self._create_model()
+        self._configure_classes(pred_classes)
+
+    def _setup_categories_path(self, json_file_path):
+        """Setup the path to the categories JSON file."""
+        if json_file_path is None:
+            current_script_path = os.path.dirname(os.path.abspath(__file__))
+            self.categories_file_path = os.path.join(
+                current_script_path, "..", "data", "pred_classes", "compbench.json"
+            )
+        else:
+            self.categories_file_path = json_file_path
+
+    def _create_model(self):
+        """Create model instance using switch-like dispatch."""
+        model_class_getter = self.config["model_class"]
+        model_class = model_class_getter()  # Call the lambda to get the actual class
+        weights = self.config["weights"]
+        return model_class(weights)
+
+    def _configure_classes(self, pred_classes):
+        """Configure model classes based on model type and prediction settings."""
+        # Validate unspecified setting
+        if pred_classes == "unspecified" and not self.config.get(
+            "supports_unspecified", False
+        ):
+            logging.warning(
+                f"Open prediction setting 'unspecified' only works for {YOLOEVERYTHING} model. "
+                f"For {self.key} model, pred_classes will default to 'from_json'."
+            )
+
+        # Configure classes using switch-like dispatch
+        class_handlers = {
+            YOLOWORLD: self._setup_yoloworld_classes,
+            YOLOEVERYTHING: lambda: self._setup_yoloeverything_classes(pred_classes),
+        }
+
+        handler = class_handlers.get(self.key)
+        if handler:
+            handler()
+
+    def _setup_yoloworld_classes(self):
+        """Setup classes for YOLO World model."""
+        self.model.set_classes(self.get_classes())
+
+    def _setup_yoloeverything_classes(self, pred_classes):
+        """Setup classes for YOLO Everything model."""
+        if pred_classes != "unspecified":
+            classes = self.get_classes()
+            self.model.set_classes(classes, self.model.get_text_pe(classes))
+
+    def __call__(self, image):
+        """
+        Detect objects in the given image using the specified model.
+
+        Args:
+            image (str or np.ndarray): Path to the image file or an image array.
+
+        Returns:
+            list: List of detected objects with bounding boxes and labels.
+        """
+        return self.model(image)
+
+    def set_classes(self, classes):
+        """
+        Set the categories of objects that the model can detect.
+
+        Args:
+            classes (list): List of category names to set for the model.
+        """
+        if not self.config.get("supports_class_setting", False):
+            logging.warning(f"Setting classes is not supported for {self.key} model.")
+            return
+
+        # Switch-like dispatch for setting classes
+        class_setters = {
+            YOLOWORLD: lambda: self.model.set_classes(classes),
+            YOLOEVERYTHING: lambda: self.model.set_classes(
+                classes, self.model.get_text_pe(classes)
+            ),
+        }
+
+        setter = class_setters.get(self.key)
+        if setter:
+            setter()
+
+    def get_classes(self):
+        """
+        Get the categories of objects that the model can detect.
+
+        Returns:
+            list: List of category names.
+        """
+        try:
+            with open(self.categories_file_path, "r") as f:
+                data = json.load(f)
+            category_names = data.get("categories", [])
+            if not category_names:
+                logging.warning(
+                    f"No categories found in {self.categories_file_path} or key 'categories' is missing/empty."
+                )
+                return []
+        except FileNotFoundError:
+            logging.error(f"The file {self.categories_file_path} was not found.")
+            return []
+        except json.JSONDecodeError:
+            logging.error(f"Could not decode JSON from {self.categories_file_path}.")
+            return []
+
+        return category_names
