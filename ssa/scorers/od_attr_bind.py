@@ -11,7 +11,6 @@ from ssa.od import (
 )
 from ssa.scorers.scorer_base import BaseScorer, BaseScorerConfig
 from ssa.utils.logging import get_log
-from ssa.utils.mlflow import active_run, log_image
 from ssa.utils.nlp_tools import ObjectAttributeExtractor
 from ssa.utils.od_tools import (
     calculate_iou,
@@ -916,10 +915,7 @@ Respond with only a number between 0.0 and 1.0 (e.g., "0.8")."""
                 title=f'Prompt: "{prompt}" | {targets_str} | Final: {final_score:.2f}',
                 save_path=f"data/debug/scorers/od-attr-bind/{self.config.od_model.replace('/', '')}/{self.config.pred_classes}/{self.ig_version.replace('/', '')}/run-{self.current_run_time}/",
             )
-
-            # Log debug image to MLflow if we have an active run
-            if active_run():
-                log_image(debug_img_path, artifact_path="debug_images")
+            log.debug(f"Debug image saved to: {debug_img_path}")
 
     def eval_full_directory(self, imagedir: str, outfile: str):
         """

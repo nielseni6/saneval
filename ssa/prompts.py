@@ -121,19 +121,15 @@ class Corpus:
         return sum(1 for prompt in self.prompts if prompt.image)
 
     def get_prompt_image(self, prompt: Prompt) -> Optional[Any]:
-        """Load image for a prompt if it has an image URI."""
+        """Load image for a prompt if it has a local file path."""
         if not prompt.image:
             return None
 
         try:
-            if prompt.image.startswith("s3://"):
-                bucket, s3_key = parse_s3_uri(prompt.image)
-                return get_image_from_s3(bucket, s3_key)
-            else:
-                # Handle local file paths
-                from PIL import Image
+            # Handle local file paths only
+            from PIL import Image
 
-                return Image.open(prompt.image)
+            return Image.open(prompt.image)
         except Exception as e:
             log.error(f"Failed to load image for prompt {prompt.id}: {e}")
             return None
@@ -194,28 +190,7 @@ def read_corpus_dir(key):
         if contents:
             return sorted([f.relative_to(data_prompts) for f in contents])
 
-    # Check if its s3 uri
-    if key.startswith("s3://"):
-        bucket, s3_key = parse_s3_uri(key)
-        contents = list_s3(bucket, s3_key)
-        corpora_keys = [
-            subkey
-            for subkey in contents
-            if any(subkey.endswith(suffix) for suffix in VALID_CORPORA_SUFFIXES)
-        ]
-        if corpora_keys:
-            return [f"s3://{bucket}/{subkey}" for subkey in corpora_keys]
-
-    # Try as a s3 relative path from s3://ssa-general/prompts/
-    contents = list_s3("ssa-general", f"prompts/{key}")
-    corpora_keys = [
-        subkey
-        for subkey in contents
-        if any(subkey.endswith(suffix) for suffix in VALID_CORPORA_SUFFIXES)
-    ]
-    if corpora_keys:
-        return [f"s3://ssa-general/{subkey}" for subkey in corpora_keys]
-
+    # S3 support has been removed
     return None
 
 
@@ -260,18 +235,6 @@ def get_corpus(key, validate_only=False):
     if local_path.exists():
         return load_corpus_file(key, local_path, validate_only=validate_only)
 
-    # Check if its s3 uri
-    if key.startswith("s3://"):
-        bucket, s3_key = parse_s3_uri(key)
-        local_path = get_s3_cached(bucket, s3_key)
-        assert local_path, f"S3 URI {key} does not exist"
-        return load_corpus_file(key, local_path, validate_only=validate_only)
-
-    # Try as a s3 relative path from s3://ssa-general/prompts/
-    local_path = get_s3_cached("ssa-general", f"prompts/{key}")
-    if local_path:
-        return load_corpus_file(key, local_path, validate_only=validate_only)
-
     raise Exception(
-        f"Corpus {key} not found in data/prompts/ or s3://ssa-general/prompts/"
+        f"Corpus {key} not found in data/prompts/ or as absolute/relative path"
     )

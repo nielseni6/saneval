@@ -11,7 +11,7 @@ import shlex
 #     send_email_with_s3_html_report,
 # )
 from ssa.benchmark_runner import (
-    mlflow_benchmark_model,
+    benchmark_model,
     resolve_benchmark_config,
 )
 from ssa.caching import (
@@ -164,7 +164,7 @@ def run_benchmarks(
                         config_overrides=config_override,
                     )
                     log.info(heading(f"Benchmarking IGM {igm} {config_override or ''}"))
-                    mlflow_benchmark_model(
+                    benchmark_model(
                         igm,
                         corpus,
                         experiment_name,
@@ -259,7 +259,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--experiment-name",
         type=str,
-        help="name for experiment on mlflow",
+        help="name for experiment",
         default=f"{get_user()}-bench-ig",
     )
     parser.add_argument(

@@ -1,9 +1,12 @@
 """
 Rescoring logic for SSA benchmarking.
+
+NOTE: Rescoring functionality has been disabled as it depends on MLflow,
+which has been removed from the codebase.
 """
 
 
-def re_score_run(
+def re_score_run_disabled(
     run,
     experiment_name,
     scoring_keys,
@@ -12,7 +15,7 @@ def re_score_run(
 ):
     import json
 
-    from ssa.benchmark_runner import mlflow_benchmark_model, resolve_benchmark_config
+    from ssa.benchmark_runner import benchmark_model, resolve_benchmark_config
     from ssa.prompts import Corpus, Prompt
     from ssa.utils.logging import log
     # from ssa.utils.mlflow import get_artifact_cached
@@ -130,7 +133,7 @@ def re_score_run(
         "rescore_of.run_name": run.info.run_name,
     }
 
-    mlflow_benchmark_model(
+    benchmark_model(
         rigm,
         corpus,
         experiment_name,
@@ -141,36 +144,13 @@ def re_score_run(
     )
 
 
-def find_runs_from_source_targets(source_targets):
-    import mlflow
-
+def find_runs_from_source_targets_disabled(source_targets):
+    """
+    This function has been disabled as it depends on MLflow.
+    """
     from ssa.utils.logging import log
-    from ssa.utils.mlflow import mlflow_setup
-
-    mlflow_setup()
-
-    all_runs = []
-    for st in source_targets:
-        # Try arg as experiment-name
-        experiment = mlflow.get_experiment_by_name(st)
-        if experiment:
-            runs = mlflow.search_runs(
-                experiment_ids=[experiment.experiment_id], output_format="list"
-            )
-            log.info(f"Found experiment {st} runs {len(runs)}")
-            all_runs.extend(runs)
-            continue
-
-        # Try arg as run-id
-        run = mlflow.get_run(st)
-        if run:
-            log.info(f"Found run-id {st} run {run.info.run_id}")
-            all_runs.append(run)
-            continue
-
-        raise Exception(f"Unable to find mlflow experiment/run-id for: {st}")
-
-    return all_runs
+    log.error("Rescoring functionality is disabled (MLflow dependency removed)")
+    raise NotImplementedError("Rescoring functionality requires MLflow which has been removed")
 
 
 def re_score(
@@ -181,42 +161,9 @@ def re_score(
     execution_config_overrides=None,
     on_cloud=False,
 ):
-    import json
-
-    from ssa.cloud import launch_fargate_tasks
+    """
+    Rescoring has been disabled as it depends on MLflow.
+    """
     from ssa.utils.logging import log
-
-    runs = find_runs_from_source_targets(source_targets)
-    log.info(
-        f"Re-scoring {len(runs)} runs {'on_cloud' if on_cloud else ''} as experiment {experiment_name}"
-    )
-
-    if on_cloud:
-        # Construct commands for tasks
-        total_tasks = len(runs)
-        task_idx = 0
-        commands = []
-        for run in runs:
-            task_idx += 1
-            command = f"python ssa/benchmark.py --experiment-name {experiment_name} --re-score {run.info.run_id} "
-            command += f" --scoring {' '.join(scoring_keys)}"
-            if bench_config_overrides:
-                command += f" --bench-config {json.dumps(bench_config_overrides)}"
-            if execution_config_overrides:
-                command += (
-                    f" --execution-config {json.dumps(execution_config_overrides)}"
-                )
-            log.info(f"Subtask {task_idx}/{total_tasks} : {command}")
-            commands.append(command)
-
-        # Launch the tasks
-        launch_fargate_tasks(commands)
-    else:
-        for run in runs:
-            re_score_run(
-                run,
-                experiment_name,
-                scoring_keys,
-                bench_config_overrides,
-                execution_config_overrides,
-            )
+    log.error("Rescoring functionality is disabled (MLflow dependency removed)")
+    raise NotImplementedError("Rescoring functionality requires MLflow which has been removed")

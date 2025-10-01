@@ -19,7 +19,6 @@ from ssa.od import (
 )
 from ssa.scorers.scorer_base import BaseScorer, BaseScorerConfig
 from ssa.utils.logging import get_log
-from ssa.utils.mlflow import active_run, log_image
 from ssa.utils.nlp_tools import ObjectAttributeExtractor
 from ssa.utils.od_tools import (
     filter_objects,
@@ -280,9 +279,7 @@ class SpatialNumeracyBase(BaseScorer):
                 title=f'Prompt: "{prompt}" ({self.get_scorer_name()}: {score:.2f})',
                 save_path=f"ssa/thirdparty/compbench/data/examples/debug/{self.get_scorer_name().lower()}/{self.config.od_model.replace('/', '')}/{self.config.pred_classes}/run-{self.current_run_time}/",
             )
-
-            if active_run():
-                log_image(debug_img_path, artifact_path="debug_images")
+            log.debug(f"Debug image saved to: {debug_img_path}")
 
         return score, detected_objects_only, obj_filtered
 

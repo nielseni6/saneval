@@ -6,7 +6,7 @@ Functions:
     - resolve_benchmark_config: Validates and constructs scorer objects for benchmarking.
     - get_config: Builds a configuration dictionary for the benchmark run.
     - simple_eval: Runs the main evaluation loop for a model/corpus/scorer set.
-    - mlflow_benchmark_model: Orchestrates a benchmark run and logs results to MLflow.
+    - benchmark_model: Orchestrates a benchmark run and logs results.
 
 Usage:
     Import these functions in your CLI or orchestration script to run benchmarks.
@@ -17,9 +17,6 @@ import time
 from pathlib import Path
 from pprint import pformat
 from typing import Any, Dict, List, Optional
-
-# import mlflow
-import yaml
 
 ## TODO: replace IgModel with image loading from a local path
 # from ssa.ig import IgModel
@@ -36,8 +33,6 @@ from ssa.utils.base import (
 )
 from ssa.utils.costs import global_cost_tracker
 from ssa.utils.logging import log
-from ssa.utils.metrics import flatten_and_sanitize_metrics
-from ssa.utils.mlflow import log_image, ssa_mlflow_run
 from ssa.utils.reasoning_trace import ReasoningTraceCollector, default_json_handler
 from ssa.utils.system import default_context, get_subconfigs
 
@@ -191,8 +186,8 @@ def simple_eval(
     )
 
 
-def mlflow_benchmark_model(
-    igm: IgModel,
+def benchmark_model(
+    igm,
     corpus: Corpus,
     experiment_name,
     scorers,
@@ -201,131 +196,79 @@ def mlflow_benchmark_model(
     execution_config=None,
 ):
     """
-    Orchestrates a benchmark run and logs results to MLflow.
+    Orchestrates a benchmark run and logs results.
     Handles model/corpus/scorer setup, evaluation, and artifact logging.
     """
-    # Workaround for malformed MLflow experiment '0'
-    # Check if mlruns/0/meta.yaml is missing and create a default one if so.
-    try:
-        mlruns_path = Path.cwd() / "mlruns"
-        exp0_dir_path = mlruns_path / "0"
-        meta_file_path = exp0_dir_path / "meta.yaml"
-
-        if exp0_dir_path.is_dir() and not meta_file_path.exists():
-            log.warning(
-                f"MLflow experiment '0' meta.yaml missing. Attempting to create a default one at {meta_file_path}"
-            )
-
-            # Ensure artifacts subdirectory exists
-            artifacts_dir_path = exp0_dir_path / "artifacts"
-            artifacts_dir_path.mkdir(parents=True, exist_ok=True)
-
-            current_time_ms = int(time.time() * 1000)
-            artifact_location_uri = artifacts_dir_path.as_uri()
-
-            meta_content = {
-                "artifact_location": artifact_location_uri,
-                "creation_time": current_time_ms,
-                "experiment_id": "0",
-                "last_update_time": current_time_ms,
-                "lifecycle_stage": "active",
-                "name": "Default",
-                "tags": {},
-            }
-            with open(meta_file_path, "w") as f:
-                yaml.dump(meta_content, f, sort_keys=False)
-            log.info("Successfully created default meta.yaml for experiment '0'.")
-    except Exception as e:
-        # Log error and continue, as this is a workaround.
-        log.error(
-            f"Failed to create default meta.yaml for experiment '0': {e}",
-            exc_info=True,
-        )
-
     reset_run_dir()
     name, config = get_config(igm, corpus, scorers, scoring_config, execution_config)
 
-    # ssa_mlflow_run handles mlflow_setup, experiment creation/retrieval, and run starting.
-    # It also logs the tracking URI and experiment details.
-    with ssa_mlflow_run(run_name=name, experiment_name=experiment_name):
-        active_run = mlflow.active_run()
-        if not active_run:
-            log.error("MLflow run was not started correctly by ssa_mlflow_run.")
-            # Consider how to handle this error, e.g., raise an exception or return an error status.
-            # For now, returning None, but this might need more robust error handling.
-            return None
+    run_id = unique_id(name=experiment_name, random_chars=8)
+    log.info(f"Run ID: {run_id} for Experiment: {experiment_name} (Run Name: {name})")
 
-        run_id = active_run.info.run_id
-        log.info(
-            f"MLflow Run ID: {run_id} for Experiment: {experiment_name} (Run Name: {name})"
-        )
-        mlflow.log_params(config)
+    # Create trace collector for this benchmark run
+    trace_collector = ReasoningTraceCollector()
 
-        # Create trace collector for this benchmark run
-        trace_collector = ReasoningTraceCollector()
+    # Inject trace collector into all scorers
+    for scorer in scorers.values():
+        scorer.set_trace_collector(trace_collector)
 
-        # Inject trace collector into all scorers
-        for scorer in scorers.values():
-            scorer.set_trace_collector(trace_collector)
+    run_results, active_benchmark_scorers = simple_eval(
+        igm,
+        corpus,
+        scorers,
+        rescoring=rescoring,
+        execution_config=execution_config,
+        trace_collector=trace_collector,
+    )
 
-        agg, run_results, active_benchmark_scorers = simple_eval(
-            igm,
-            corpus,
-            scorers,
-            rescoring=rescoring,
-            execution_config=execution_config,
-            trace_collector=trace_collector,
-        )
+    log.info(f"run_results:\n{pformat(run_results)}")
 
-        log.info(f"run_results:\\n{pformat(run_results)}")
-        log.info(f"aggregates:\\n{pformat(agg)}")
-
-        # Flatten metrics before logging
-        for scorer_key, benchmark_scorer in active_benchmark_scorers.items():
-            try:
-                scorer_agg_metrics = benchmark_scorer.aggregate_metrics(
-                    final_agg_dict={}
-                )
-                agg.update(scorer_agg_metrics)
-            except Exception as e:
-                log.error(
-                    f"Error aggregating metrics for {scorer_key}: {e}", exc_info=True
-                )
-
-        # Log aggregated metrics to MLflow
-        sanitized_metrics = flatten_and_sanitize_metrics(agg)
-        mlflow.log_metrics(sanitized_metrics)
-
-        final_agg_path = prepare_artifact_path("aggregates", ".json", run_id)
-
-        with open(final_agg_path, "w") as f:
-            json.dump(agg, f, indent=4, sort_keys=True)
-
-        mlflow.log_artifact(final_agg_path)
-
-        final_run_result_path = prepare_artifact_path("run_result", ".json", run_id)
-
-        # Remove circular references before saving results
-        cleaned_run_results = remove_circular_refs(run_results)
-        with open(final_run_result_path, "w") as f:
-            json.dump(cleaned_run_results, f, indent=4, sort_keys=True)
-        mlflow.log_artifact(final_run_result_path)
-
-        # Save reasoning traces
-        reasoning_traces = trace_collector.get_traces()
-        if reasoning_traces:
-            final_reasoning_trace_path = prepare_artifact_path(
-                "reasoning_trace", ".json", run_id
+    # Aggregate metrics from benchmark scorers
+    agg = {}
+    for scorer_key, benchmark_scorer in active_benchmark_scorers.items():
+        try:
+            scorer_agg_metrics = benchmark_scorer.aggregate_metrics(
+                final_agg_dict={}
             )
-            with open(final_reasoning_trace_path, "w") as f:
-                json.dump(
-                    reasoning_traces,
-                    f,
-                    indent=4,
-                    sort_keys=True,
-                    default=default_json_handler,
-                )
-            mlflow.log_artifact(final_reasoning_trace_path)
+            agg.update(scorer_agg_metrics)
+        except Exception as e:
+            log.error(
+                f"Error aggregating metrics for {scorer_key}: {e}", exc_info=True
+            )
+
+    log.info(f"aggregates:\n{pformat(agg)}")
+
+    # Save aggregated results
+    final_agg_path = prepare_artifact_path("aggregates", ".json", run_id)
+    with open(final_agg_path, "w") as f:
+        json.dump(agg, f, indent=4, sort_keys=True)
+
+    # Save run results
+    final_run_result_path = prepare_artifact_path("run_result", ".json", run_id)
+    cleaned_run_results = remove_circular_refs(run_results)
+    with open(final_run_result_path, "w") as f:
+        json.dump(cleaned_run_results, f, indent=4, sort_keys=True)
+
+    # Save reasoning traces
+    reasoning_traces = trace_collector.get_traces()
+    if reasoning_traces:
+        final_reasoning_trace_path = prepare_artifact_path(
+            "reasoning_trace", ".json", run_id
+        )
+        with open(final_reasoning_trace_path, "w") as f:
+            json.dump(
+                reasoning_traces,
+                f,
+                indent=4,
+                sort_keys=True,
+                default=default_json_handler,
+            )
+
+    log.info(f"Results saved to:")
+    log.info(f"  - {final_agg_path}")
+    log.info(f"  - {final_run_result_path}")
+    if reasoning_traces:
+        log.info(f"  - {final_reasoning_trace_path}")
 
     return run_id
 
@@ -417,18 +360,12 @@ def _process_prompt_result(
         failed_gen += 1
         current_prompt_result["failed_imagegen"] = True
         current_prompt_result["error_message"] = error_message
-        # Log running metrics even for failed generation
-        if mlflow.active_run():
-            mlflow.log_metrics(running_metrics, step=pidx)
         return current_prompt_result, failed_gen, failed_scoring_prompts
 
     # Handle successful generation or skip_generation mode
     skip_generation = prompt.extras.get("skip_generation", False)
 
     if generated_image:
-        # Log image artifact to MLflow unless it already has a mlflow path saved
-        if "mlflow_path" not in generated_image.info:
-            log_image(generated_image.info["path"])
         current_prompt_result["image_id"] = generated_image.info["image_id"]
 
         # Add source image info if present
@@ -471,10 +408,6 @@ def _process_prompt_result(
 
         if scoring_failed:
             failed_scoring_prompts += 1
-
-    # Log running metrics for this step
-    if mlflow.active_run():
-        mlflow.log_metrics(running_metrics, step=pidx)
 
     return current_prompt_result, failed_gen, failed_scoring_prompts
 
