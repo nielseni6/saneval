@@ -33,24 +33,24 @@ def hash_dict(dictionary):
     return hasher.hexdigest()
 
 
-# def default_context():
-#     now = datetime.datetime.now()
-#     res = {
-#         **{f"git.{k}": str(v) for k, v in git_info().items()},
-#         "user": get_user(),
-#         "hostname": socket.gethostname(),
-#         "datetime": now.astimezone().isoformat(),
-#         "sys_argv": sys.argv,
-#     }
+def default_context():
+    """Return default context information for benchmark runs."""
+    now = datetime.datetime.now()
+    res = {
+        "user": get_user(),
+        "hostname": socket.gethostname(),
+        "datetime": now.astimezone().isoformat(),
+        "sys_argv": sys.argv,
+    }
 
-#     # Add AWS Info
-#     if ecs_agent := os.getenv("ECS_AGENT_URI"):
-#         res["ecs_task_id"] = ecs_agent.split("/")[-1].split("-")[0]
-#     for k in ["AWS_REGION", "AWS_EXECUTION_ENV"]:
-#         if k in os.environ:
-#             res[k.lower()] = os.environ[k]
+    # Add AWS Info if available
+    if ecs_agent := os.getenv("ECS_AGENT_URI"):
+        res["ecs_task_id"] = ecs_agent.split("/")[-1].split("-")[0]
+    for k in ["AWS_REGION", "AWS_EXECUTION_ENV"]:
+        if k in os.environ:
+            res[k.lower()] = os.environ[k]
 
-#     return res
+    return res
 
 
 def get_next_seeds(initial_seed, n):

@@ -98,64 +98,8 @@ def get_config(images_dir, scorers, scoring_config, execution_config):
     return name, config
 
 
-# Helper for Image Generation and Base Metric Aggregation
-def _generate_image_and_update_base_aggregators(
-    igm: IgModel,
-    prompt_text: str,
-    latency_agg: Aggregator,
-    gpu_latency_agg: Aggregator,
-    cost_agg: Aggregator,
-    source_image=None,
-):
-    """Generates an image and updates base latency and cost aggregators.
-    Returns the generated image object. Raises RetryableGenerationError for retryable failures.
-
-    Args:
-        igm: Image generation model
-        prompt_text: Text prompt for generation
-        latency_agg: Latency aggregator
-        gpu_latency_agg: GPU latency aggregator
-        cost_agg: Cost aggregator
-        source_image: Optional source image for image-to-image generation
-    """
-    retryer = create_retryer(igm)
-
-    for attempt in retryer:
-        with attempt:
-            generation_type = "i2i" if source_image is not None else "t2i"
-            log.info(
-                f"Generating image ({generation_type}) for prompt: {prompt_text[:50]}..."
-            )
-            t0 = time.time()
-            c0 = global_cost_tracker.total_cost()
-            kwargs = {}
-
-            # Add source image for image-to-image generation
-
-            try:
-                if source_image is not None:
-                    log.info("Using source image for i2i generation")
-                    image = igm.edit_image(prompt_text, image=source_image)
-                else:
-                    image = igm.generate_image(prompt_text, **kwargs)
-            except Exception as e:
-                if is_retryable_error(e):
-                    log.warning(f"Classified as retryable error. {e}. Retrying.")
-                    raise RetryableGenerationError(
-                        f"Generation retryable error: {e}"
-                    ) from e
-                else:
-                    log.error(f"Classified as non-retryable error. {e}. Not retrying.")
-                    raise
-
-            latency = time.time() - t0
-            latency_agg.add_datum(latency)
-            cost = global_cost_tracker.total_cost() - c0
-            cost_agg.add_datum(cost)
-            if image and (gpu_duration := image.info.get("gpu_duration")):
-                gpu_latency_agg.add_datum(gpu_duration)
-
-            return image
+# Note: _generate_image_and_update_base_aggregators function removed
+# as image generation has been replaced with direct image loading
 
 
 def simple_eval(

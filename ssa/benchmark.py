@@ -52,7 +52,8 @@ def run_benchmarks(
 
     log.info("Success!")
 
-if __name__ == "__main__":
+def main():
+    """Main entry point for the benchmark script."""
     # Parse arguments
     parser = argparse.ArgumentParser(
         "Run Benchmarking.  See docs/BENCHMARKS.md for usage"
@@ -102,3 +103,7 @@ if __name__ == "__main__":
         bench_config_overrides,
         execution_config_overrides,
     )
+
+
+if __name__ == "__main__":
+    main()
