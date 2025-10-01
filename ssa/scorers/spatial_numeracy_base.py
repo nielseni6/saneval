@@ -65,9 +65,6 @@ class SpatialNumeracyBase(BaseScorer):
         """
         self.current_run_time = time.strftime("%Y%m%d_%H%M%S")
 
-        # Install HuggingFace token
-        os.environ["HUGGING_FACE_HUB_TOKEN"] = get_secret("HUGGINGFACE_TOKEN")
-
         # Call parent constructor first
         super().__init__(config, config_overrides)
 
@@ -81,22 +78,20 @@ class SpatialNumeracyBase(BaseScorer):
 
         # Load object names
         obj_names_path = (
-            Path(__file__).parent.parent
-            / "thirdparty"
-            / "saneval"
-            / "object_names.txt"
+            Path(__file__).parent.parent.parent
+            / "data"
+            / "pred_classes"
+            / "objects.txt"
         )
         with obj_names_path.open() as cls_file:
             self.classnames = [line.strip() for line in cls_file]
 
         # Load objects data
         objects_path = (
-            Path(__file__).parent.parent
-            / "thirdparty"
-            / "saneval"
+            Path(__file__).parent.parent.parent
             / "data"
-            / "examples"
-            / "new_objects.txt"
+            / "pred_classes"
+            / "convert_objects.txt"
         )
         with objects_path.open() as f:
             objects = f.read().splitlines()
