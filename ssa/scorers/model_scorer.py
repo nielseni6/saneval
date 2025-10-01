@@ -1,34 +1,12 @@
-from ssa.scorers.bag_of_criteria_vlm import BagOfCriteriaVlm as BocVlm
-from ssa.scorers.dsg_vlm import DsgVlm
-from ssa.scorers.face_analysis_scorer import FaceAnalysisScorer
-from ssa.scorers.face_id import FaceId
-from ssa.scorers.hpsv2 import HpsV2
-from ssa.scorers.i2i_criteria_vlm import I2ICriteriaVlm
-from ssa.scorers.mock_i2i import MockI2I
 from ssa.scorers.numeracy import NumeracyScorer
 from ssa.scorers.od_attr_bind import OdAttrBind
-from ssa.scorers.pick_score import PickScore
-from ssa.scorers.roundtrip import Roundtrip
 from ssa.scorers.spatial import SpatialScorer
 from ssa.scoring import (
-    BOC_VLM,
-    COMPBENCH,
-    DSG_VLM,
-    FACE_ANALYSIS,
-    FACE_ID,
-    GEN_EVAL,
-    HPSV2,
-    I2I_CRITERIA_VLM,
-    MOCK_I2I,
     NUMERACY,
     OD_ATTR_BINDING,
-    PICK_SCORE,
-    ROUNDTRIP,
     SCORING_METHODS,
     SPATIAL,
 )
-from ssa.thirdparty.compbench.spatial_numeracy_eval import CompBench
-from ssa.thirdparty.geneval.evaluate_images import GenEval
 from ssa.utils.logging import get_log
 
 log = get_log(__file__)
@@ -40,36 +18,12 @@ class ModelScorer:
         log.info(f"Initializing Scorer {key}")
         if model:
             self.model = model
-        elif key == DSG_VLM:
-            # DSG + VLM based criteria generation/eval
-            self.model = DsgVlm(config_overrides=config_overrides)
-        elif key == BOC_VLM:
-            # BOC (bag of criteria / LLM) /VLM based criteria generation/eval
-            self.model = BocVlm(config_overrides=config_overrides)
-        elif key == GEN_EVAL:
-            self.model = GenEval(config_overrides=config_overrides)
-        elif key == HPSV2:
-            self.model = HpsV2(config_overrides=config_overrides)
-        elif key == PICK_SCORE:
-            self.model = PickScore(config_overrides=config_overrides)
-        elif key == COMPBENCH:
-            self.model = CompBench(config_overrides=config_overrides)
         elif key == SPATIAL:
             self.model = SpatialScorer(config_overrides=config_overrides)
         elif key == NUMERACY:
             self.model = NumeracyScorer(config_overrides=config_overrides)
         elif key == OD_ATTR_BINDING:
             self.model = OdAttrBind(config_overrides=config_overrides)
-        elif key == FACE_ANALYSIS:
-            self.model = FaceAnalysisScorer(config_overrides=config_overrides)
-        elif key == FACE_ID:
-            self.model = FaceId(config_overrides=config_overrides)
-        elif key == ROUNDTRIP:
-            self.model = Roundtrip(config_overrides=config_overrides)
-        elif key == MOCK_I2I:
-            self.model = MockI2I(config=config_overrides)
-        elif key == I2I_CRITERIA_VLM:
-            self.model = I2ICriteriaVlm(config_overrides=config_overrides)
         else:
             raise Exception(
                 f"Unrecognized scorer: {key}.  Choose from: {SCORING_METHODS}"

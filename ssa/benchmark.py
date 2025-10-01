@@ -34,7 +34,7 @@ from ssa.prompts import (
 )
 from ssa.rescore import re_score
 from ssa.scoring import (
-    DSG_VLM,
+    SPATIAL,
     SCORING_METHODS,
 )
 # from ssa.utils.costs import global_cost_tracker
@@ -292,7 +292,7 @@ if __name__ == "__main__":
         "--scoring",
         nargs="*",
         help="Scoring methods to run, can be combined",
-        default=[DSG_VLM],
+        default=[SPATIAL],
         choices=SCORING_METHODS,
     )
     parser.add_argument(
