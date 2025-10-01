@@ -72,21 +72,19 @@ def resolve_benchmark_config(scoring_keys, bench_config_overrides):
     return res
 
 
-def get_config(igm, corpus, scorers, scoring_config, execution_config):
+def get_config(images_dir, corpus, scorers, scoring_config, execution_config):
     """
-    Builds a configuration dictionary for the benchmark run, including model, corpus, and scorer configs.
+    Builds a configuration dictionary for the benchmark run, including images dir, corpus, and scorer configs.
     Returns (name, config_dict).
     """
-    # Scorers here is the dict from resolve_benchmark_config, i.e. {scoring_key: ssa.scorers.model_scorer.ModelScorer}
-    # This should be fine.
     config = {
         **default_context(),
         **(scoring_config or {}),
         **(execution_config or {}),
         "scoring": list(scorers.keys()),
+        "images_dir": images_dir,
     }
     config.update({f"corpus.{key}": val for key, val in corpus.config().items()})
-    config.update({f"model.{key}": val for key, val in igm.config().items()})
     for (
         scoring_key,
         scorer_model_instance,
@@ -100,7 +98,7 @@ def get_config(igm, corpus, scorers, scoring_config, execution_config):
             }
         )
     log.info(f"config:\\n{pformat(config)}")
-    name = unique_id(name=str(igm.version), random_chars=6)
+    name = unique_id(name="image-eval", random_chars=6)
     log.info(f"name={name}")
     return name, config
 
@@ -166,7 +164,7 @@ def _generate_image_and_update_base_aggregators(
 
 
 def simple_eval(
-    igm: IgModel,
+    images_dir: str,
     corpus: Corpus,
     model_scorers: Dict[str, ModelScorer],
     rescoring: bool = False,
@@ -175,19 +173,18 @@ def simple_eval(
 ):
     """
     Main evaluation loop for a benchmark run using standardized scoring infrastructure.
-    Iterates over prompts, generates images, scores them, and aggregates results.
-    Returns (aggregates_dict, run_results_list).
+    Loads images from directory, scores them, and aggregates results.
+    Returns (run_results_list, active_benchmark_scorers_dict).
     `model_scorers` is a dict of {scoring_key: ssa.scorers.model_scorer.ModelScorer} from `resolve_benchmark_config`.
-     If `rescoring` is True, it will attempt to re-score previously generated images only.
     """
     # Delegate to standardized implementation
     return simple_eval_standardized(
-        igm, corpus, model_scorers, rescoring, execution_config, trace_collector
+        images_dir, corpus, model_scorers, rescoring, execution_config, trace_collector
     )
 
 
 def benchmark_model(
-    igm,
+    images_dir,
     corpus: Corpus,
     experiment_name,
     scorers,
@@ -197,10 +194,10 @@ def benchmark_model(
 ):
     """
     Orchestrates a benchmark run and logs results.
-    Handles model/corpus/scorer setup, evaluation, and artifact logging.
+    Loads images from directory, evaluates with corpus/scorer setup, and logs artifacts.
     """
     reset_run_dir()
-    name, config = get_config(igm, corpus, scorers, scoring_config, execution_config)
+    name, config = get_config(images_dir, corpus, scorers, scoring_config, execution_config)
 
     run_id = unique_id(name=experiment_name, random_chars=8)
     log.info(f"Run ID: {run_id} for Experiment: {experiment_name} (Run Name: {name})")
@@ -213,7 +210,7 @@ def benchmark_model(
         scorer.set_trace_collector(trace_collector)
 
     run_results, active_benchmark_scorers = simple_eval(
-        igm,
+        images_dir,
         corpus,
         scorers,
         rescoring=rescoring,
@@ -411,9 +408,8 @@ def _process_prompt_result(
 
     return current_prompt_result, failed_gen, failed_scoring_prompts
 
-# TODO: remove need for IgModel in this function. igm should be replaced with a local image path.
 def simple_eval_standardized(
-    igm: IgModel,
+    images_dir: str,
     corpus: Corpus,
     model_scorers: Dict[str, ModelScorer],
     rescoring: bool = False,
@@ -421,9 +417,11 @@ def simple_eval_standardized(
     trace_collector: Optional[ReasoningTraceCollector] = None,
 ):
     """
-    Standardized evaluation loop using new scoring infrastructure.
+    Standardized evaluation loop using new scoring infrastructure with direct image loading.
     Returns same format as simple_eval for compatibility.
     """
+    from pathlib import Path
+    from PIL import Image as PILImage
     # from ssa.parallel_execution import (
     #     ParallelImageGenerator,
     #     generate_image_with_retry,
@@ -455,6 +453,21 @@ def simple_eval_standardized(
     failed_gen = 0
     failed_scoring_prompts = 0
 
+    # Load all images from directory
+    images_path = Path(images_dir)
+    if not images_path.exists():
+        raise ValueError(f"Images directory does not exist: {images_dir}")
+
+    # Create a mapping of image files by their prompt ID or filename
+    image_files = {}
+    for img_file in images_path.glob("*"):
+        if img_file.suffix.lower() in ['.png', '.jpg', '.jpeg', '.webp']:
+            # Try to match by prompt ID (filename without extension)
+            image_id = img_file.stem
+            image_files[image_id] = img_file
+
+    log.info(f"Found {len(image_files)} images in {images_dir}")
+
     # Create standardized scorers using the factory function
     standardized_scorers = []
 
@@ -478,23 +491,17 @@ def simple_eval_standardized(
 
     run_results: List[Dict[str, Any]] = []
 
-    if not rescoring:
-        log.info("Generating warm-up image")
-        igm._warmup(wait=True)
-
-        # Warm up standardized scorers
-        for scorer in standardized_scorers:
-            try:
-                log.info(f"Warming up {scorer.scorer_name} scorer...")
-                scorer.warmup()
-                log.info(f"Successfully warmed up {scorer.scorer_name} scorer.")
-            except Exception as e:
-                log.error(
-                    f"Error during warmup for {scorer.scorer_name} scorer: {e}",
-                    exc_info=True,
-                )
-    else:
-        log.info("Warm up is not required for rescoring runs.")
+    # Warm up standardized scorers
+    for scorer in standardized_scorers:
+        try:
+            log.info(f"Warming up {scorer.scorer_name} scorer...")
+            scorer.warmup()
+            log.info(f"Successfully warmed up {scorer.scorer_name} scorer.")
+        except Exception as e:
+            log.error(
+                f"Error during warmup for {scorer.scorer_name} scorer: {e}",
+                exc_info=True,
+            )
 
     total_prompts = len(corpus.prompts)
     job_t0 = time.time()
@@ -503,128 +510,92 @@ def simple_eval_standardized(
     if trace_collector:
         trace_collector.clear()
 
-    if parallel_exec_config.enabled:
-        # Use parallel execution
-        log.info(f"Starting parallel generation for {total_prompts} prompts")
-        parallel_results = parallel_generator.generate_images_parallel(
-            igm, corpus.prompts, corpus, latency_agg, gpu_latency_agg, cost_agg
+    # Process each prompt with its corresponding image
+    for pidx, prompt in enumerate(corpus.prompts):
+        log.info(
+            f"Prompt {pidx + 1}/{total_prompts} id={prompt.id} : {prompt.text}"
         )
 
-        # Process results from parallel execution
-        processing_context = ProcessingContext(runner, total_prompts, job_t0, cost_agg)
-        for pidx, (prompt, generated_image, error_message) in enumerate(
-            parallel_results
-        ):
-            # Start trace collection for this prompt
-            if trace_collector:
-                trace_collector.start_prompt(prompt.id, prompt.text)
+        # Start trace collection for this prompt
+        if trace_collector:
+            trace_collector.start_prompt(prompt.id, prompt.text)
 
-            current_prompt_result, failed_gen, failed_scoring_prompts = (
-                _process_prompt_result(
-                    prompt,
-                    generated_image,
-                    error_message,
-                    pidx,
-                    processing_context,
-                    failed_gen,
-                    failed_scoring_prompts,
-                )
-            )
-            run_results.append(current_prompt_result)
+        # Load image for this prompt
+        loaded_image = None
+        image_path = None
+        error_message = None
 
-            # Finish trace collection for this prompt
-            if trace_collector:
-                trace_collector.finish_prompt()
-    else:
-        # Use sequential execution
-        processing_context = ProcessingContext(runner, total_prompts, job_t0, cost_agg)
-        for pidx, prompt in enumerate(corpus.prompts):
-            log.info(
-                f"Prompt {pidx + 1}/{total_prompts} id={prompt.id} : {prompt.text}"
-            )
+        # Try to find image by prompt ID
+        if prompt.id in image_files:
+            image_path = str(image_files[prompt.id])
+            try:
+                loaded_image = PILImage.open(image_path)
+                # Create a minimal image object that mimics the expected structure
+                class ImageWrapper:
+                    def __init__(self, pil_image, path, prompt_id):
+                        self.info = {
+                            "path": path,
+                            "image_id": prompt_id,
+                        }
+                        self._pil_image = pil_image
 
-            # Start trace collection for this prompt
-            if trace_collector:
-                trace_collector.start_prompt(prompt.id, prompt.text)
-
-            # Load source image if this is an image-to-image prompt
-            source_image = None
-            if prompt.image:
-                try:
-                    source_image = corpus.get_prompt_image(prompt)
-                    if source_image:
-                        log.info(
-                            f"Loaded source image for i2i generation: {prompt.image}"
-                        )
-                    else:
-                        log.warning(f"Failed to load source image: {prompt.image}")
-                except Exception as e:
-                    log.error(f"Error loading source image for prompt {prompt.id}: {e}")
-
-            # Check if generation should be skipped
-            skip_generation = prompt.extras.get("skip_generation", False)
-
-            if skip_generation:
-                # Skip generation, use base image directly
-                if not prompt.text.isdigit():
-                    log.warning(
-                        f"skip_generation=true but text '{prompt.text}' is not numeric"
-                    )
+                generated_image = ImageWrapper(loaded_image, image_path, prompt.id)
+                log.info(f"Loaded image from {image_path}")
+            except Exception as e:
+                log.error(f"Failed to load image {image_path}: {e}")
                 generated_image = None
-                error_message = None
-            else:
-                # Generate image with retry (tenacity handles retries automatically)
-                try:
-                    generated_image = generate_image_with_retry(
-                        igm,
-                        prompt.text,
-                        latency_agg,
-                        gpu_latency_agg,
-                        cost_agg,
-                        source_image,
-                    )
-                    error_message = None
-                except Exception as e:
-                    log.error(
-                        f"Image generation failed permanently for prompt {prompt.id}: {e}",
-                        exc_info=True,
-                    )
-                    generated_image = None
-                    error_message = str(e)
+                error_message = f"Failed to load image: {e}"
+        else:
+            log.warning(f"No image found for prompt ID: {prompt.id}")
+            generated_image = None
+            error_message = f"No image found for prompt ID: {prompt.id}"
 
-            # Process the result using the common function
-            current_prompt_result, failed_gen, failed_scoring_prompts = (
-                _process_prompt_result(
-                    prompt,
-                    generated_image,
-                    error_message,
-                    pidx,
-                    processing_context,
-                    failed_gen,
-                    failed_scoring_prompts,
-                )
+        # Create prompt context for scoring
+        from ssa.scoring.runner import create_prompt_context_from_legacy
+
+        current_prompt_result: Dict[str, Any] = {
+            "prompt": prompt.to_dict(),
+            "prompt_id": prompt.id,
+            "prompt_text": prompt.text,
+        }
+
+        if error_message:
+            # Handle loading failure
+            failed_gen += 1
+            current_prompt_result["failed_imagegen"] = True
+            current_prompt_result["error_message"] = error_message
+        elif generated_image:
+            current_prompt_result["image_id"] = generated_image.info["image_id"]
+
+            # Score with standardized runner
+            prompt_context = create_prompt_context_from_legacy(
+                prompt, generated_image, image_path
             )
-            run_results.append(current_prompt_result)
 
-            # Finish trace collection for this prompt
-            if trace_collector:
-                trace_collector.finish_prompt()
+            scoring_failed = False
+            for score_result in runner._score_single_prompt(prompt_context):
+                if not score_result.success:
+                    scoring_failed = True
+                    log.error(
+                        f"Scoring failed for {score_result.scorer_name} on prompt {prompt.id}"
+                    )
+                else:
+                    # Store results in the legacy format for backward compatibility
+                    current_prompt_result[score_result.scorer_name] = score_result.raw_data
 
-    # # Aggregate results using both new and legacy methods
-    # agg = {
-    #     "failed_gen": failed_gen,
-    #     "failed_scoring_prompts": failed_scoring_prompts,
-    #     "latency": latency_agg.get_aggregates(),
-    #     "gpu_latency": gpu_latency_agg.get_aggregates(),
-    #     "cost": cost_agg.get_aggregates(),
-    # }
+            if scoring_failed:
+                failed_scoring_prompts += 1
 
-    # Get standardized aggregated metrics
-    # standardized_agg = runner.compute_final_aggregates()
-    # agg.update(standardized_agg)
+        run_results.append(current_prompt_result)
+
+        # Finish trace collection for this prompt
+        if trace_collector:
+            trace_collector.finish_prompt()
+
+    log.info(f"Completed evaluation of {total_prompts} prompts")
+    log.info(f"Failed to load: {failed_gen}, Failed scoring: {failed_scoring_prompts}")
 
     return (
-        # agg,
         run_results,
         {scorer.scorer_name: scorer for scorer in standardized_scorers},
     )

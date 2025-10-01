@@ -30,23 +30,21 @@ from ssa.utils.system import (
 
 
 def run_benchmarks(
-    model_keys,
     experiment_name,
     scoring_keys,
     corpus_keys,
-    max_retries=0,
-    total_expected_tasks=0,
-    asset_name=None,
-    asset_type=None,
+    images_dir=None,
     bench_config_overrides=None,
     execution_config_overrides=None,
-    model_config_overrides=None,
 ):
     assert (
         corpus_keys is not None and len(corpus_keys) > 0
     ), "At least one corpus required"
-    assert model_keys, "At least one model required"
-    model_config_overrides = model_config_overrides or [None]
+
+    if images_dir:
+        log.info(f"Loading images from directory: {images_dir}")
+    else:
+        raise ValueError("--images-dir is required for image loading mode")
 
     corpora = []
 
@@ -61,45 +59,25 @@ def run_benchmarks(
             corpora.append(key)
 
     log.info(
-        f"Running {len(model_keys)} model(s) over {len(corpora)} corpora over {len(model_config_overrides)} configs"
+        f"Running benchmarks over {len(corpora)} corpora with images from {images_dir}"
     )
 
     for corpus_key in corpora:
         corpus = get_corpus(corpus_key)
         log.info(f"Loaded corpus: {corpus}")
-        if corpus.has_images():
-            log.info(
-                f"Corpus contains {corpus.image_count()} prompts with images (i2i capable)"
-            )
-        else:
-            log.info("Corpus contains text-only prompts (t2i mode)")
+        log.info(f"Corpus contains {len(corpus.prompts)} prompts")
 
         scorers = resolve_benchmark_config(scoring_keys, bench_config_overrides)
         log.info(f"Loaded scorers: {scorers}")
 
-        log.info(
-            f"Using tenacity-based retries: {max_retries + 1} attempts for generation (retryable errors only)"
-        )
-        for model_key in model_keys:
-            for config_override in model_config_overrides:
-                # Using clean tenacity-based retry logic - no nested retries
-                igm = IgModel(
-                    model_key,
-                    save=True,
-                    max_retries=max_retries,
-                    config_overrides=config_override,
-                )
-                log.info(heading(f"Benchmarking IGM {igm} {config_override or ''}"))
-                benchmark_model(
-                    igm,
-                    corpus,
-                    experiment_name,
-                    scorers,
-                    scoring_config=bench_config_overrides,
-                    execution_config=execution_config_overrides,
-                )
-        log.info(
-            f"Total benchmark run cost:\n{global_cost_tracker.total_cost_report()}"
+        log.info(heading(f"Benchmarking with images from: {images_dir}"))
+        benchmark_model(
+            images_dir,
+            corpus,
+            experiment_name,
+            scorers,
+            scoring_config=bench_config_overrides,
+            execution_config=execution_config_overrides,
         )
 
     log.info("Success!")
@@ -123,14 +101,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         "Run Benchmarking.  See docs/BENCHMARKS.md for usage"
     )
-    DEFAULT_MODEL_ARG = [DEFAULT_VERSION]
-    parser.add_argument(
-        "--model",
-        type=str,
-        nargs="*",
-        help="ig model version(s) to benchmark",
-        default=DEFAULT_MODEL_ARG,
-    )
     DEFAULT_CORPUS_ARG = ["mini-corpus"]
     parser.add_argument(
         "--corpus",
@@ -153,13 +123,6 @@ if __name__ == "__main__":
         default=None,
     )
     parser.add_argument(
-        "--model-config",
-        type=str,
-        help="Override config values of the IG-Model.  You can pass single fields 'key=val' , a dictionary '{\"key\":\"val\"}' or a filepath '/path/config.json'.  Multiple args are treated as independent runs, not combined",
-        nargs="*",
-        default=None,
-    )
-    parser.add_argument(
         "--bench-config",
         type=str,
         help="Override config values of the benchmark itself.  You can pass single fields 'key=val' , a dictionary '{\"key\":\"val\"}' or a filepath '/path/config.json'.",
@@ -178,45 +141,22 @@ if __name__ == "__main__":
         default=[SPATIAL],
         choices=SCORING_METHODS,
     )
-    parser.add_argument("--max-retries", type=int, default=0)
     parser.add_argument(
-        "--asset-type",
+        "--images-dir",
         type=str,
-        help="What is the asset you want to generate a corpus for? (Asset e.g., Portrait, Cartoon, Logo)",
+        required=True,
+        help="Directory containing images to evaluate (e.g., 'images/samples/attribute_binding')",
     )
-    parser.add_argument(
-        "--asset-name",
-        type=str,
-        help="Name of the celebrity, character or logo",
-    )
-    parser.add_argument(
-        "--prompt-num",
-        type=int,
-        default=5,
-        help="How many prompts to generate",
-    )
-    parser.add_argument("--total-expected-tasks", type=int)
-    parser.add_argument(
-        "--custom-corpus",
-        action="store_true",
-        help="Generate a custom corpus for the asset instead of using a pre-defined one.",
-    )
-
     add_log_args(parser)
     args = parser.parse_args()
     process_log_args(args)
 
-    model_config_overrides = args.model_config or [None]
     bench_config_overrides = parse_config_arg(args.bench_config)
     execution_config_overrides = parse_config_arg(args.execution_config)
 
     if args.re_score:
-        if args.model != DEFAULT_MODEL_ARG:
-            raise ValueError("Cannot change --model when re-scoring")
         if args.corpus != DEFAULT_CORPUS_ARG:
             raise ValueError("Cannot change --corpus when re-scoring")
-        if args.model_config:
-            raise ValueError("Cannot change --model-config when re-scoring")
         re_score(
             args.re_score,
             args.experiment_name,
@@ -224,44 +164,12 @@ if __name__ == "__main__":
             bench_config_overrides,
             execution_config_overrides,
         )
-    elif args.custom_corpus and not all(
-        [
-            args.asset_name,
-            args.asset_type,
-            args.scoring,
-            args.total_expected_tasks,
-        ]
-    ):
-        parser.error(
-            "--experiment-name, --asset-name, --asset-type, --total-expected-tasks, and --scoring are required when running --custom-corpus."
-        )
     else:
-        if args.custom_corpus:
-            run_ip_risk_audit_workflow(
-                model_keys=args.model,
-                experiment_name=args.experiment_name,
-                scoring_keys=args.scoring,
-                max_retries=args.max_retries,
-                total_expected_tasks=args.total_expected_tasks,
-                asset_name=args.asset_name,
-                asset_type=args.asset_type,
-                bench_config_overrides=bench_config_overrides,
-                execution_config_overrides=execution_config_overrides,
-                model_config_overrides=[
-                    parse_config_arg(c) for c in model_config_overrides
-                ],
-            )
-        else:
-            run_benchmarks(
-                args.model,
-                args.experiment_name,
-                args.scoring,
-                args.corpus,
-                args.max_retries,
-                args.total_expected_tasks,
-                args.asset_name,
-                args.asset_type,
-                bench_config_overrides,
-                execution_config_overrides,
-                [parse_config_arg(c) for c in model_config_overrides],
-            )
+        run_benchmarks(
+            args.experiment_name,
+            args.scoring,
+            args.corpus,
+            args.images_dir,
+            bench_config_overrides,
+            execution_config_overrides,
+        )
