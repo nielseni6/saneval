@@ -211,3 +211,5 @@ results/
 *.pt
 *.ts
 data/debug/
+mlruns/
+saneval_env/

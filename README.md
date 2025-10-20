@@ -3,7 +3,33 @@ Suite of benchmarks for evaluating generated image composition.
 
 ## Installation
 
+### Automatic Setup (Recommended)
+
+The setup script will automatically create a virtual environment for you:
+
 ```bash
+# Step 1: Run setup to create the virtual environment
+python setup.py install
+
+# Step 2: Activate the virtual environment
+source saneval_env/bin/activate  # Unix/Mac
+# OR
+saneval_env\Scripts\activate  # Windows
+
+# Step 3: Install the package in editable mode
+pip install -e .
+```
+
+### Manual Setup
+
+If you prefer to manage your own virtual environment:
+
+```bash
+# Create and activate your own virtual environment
+python -m venv myenv
+source myenv/bin/activate  # Unix/Mac
+
+# Install the package
 pip install -e .
 ```
 
@@ -49,6 +75,8 @@ export AWS_DEFAULT_REGION="us-east-1"  # or your preferred region
 
 ## Usage
 
+### Command Line
+
 Run benchmarks on a directory of images:
 
 ```bash
@@ -57,6 +85,18 @@ python ssa/benchmark.py \
   --output-dir results/attribute_binding \
   --scoring od-attr-binding
 ```
+
+### VS Code Debugging
+
+A debug configuration is included for VS Code:
+
+1. Open the project in VS Code
+2. Ensure `saneval_env` is created and activated
+3. Go to Run and Debug (Ctrl+Shift+D / Cmd+Shift+D)
+4. Select "Benchmark: Attribute Binding" from the dropdown
+5. Press F5 to start debugging
+
+The debug configuration automatically uses the `saneval_env` Python interpreter.
 
 ### Available Scoring Methods
 
