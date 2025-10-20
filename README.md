@@ -8,6 +8,9 @@ Suite of benchmarks for evaluating generated image composition.
 The setup script will automatically create a virtual environment for you:
 
 ```bash
+# Pre-setup (if pip is not updated)
+pip install --upgrade pip 
+
 # Step 1: Run setup to create the virtual environment
 python setup.py install
 
