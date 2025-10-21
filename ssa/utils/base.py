@@ -18,8 +18,12 @@ alphanumeric_characters = string.ascii_letters + string.digits
 # Chosen b/c odds of collision in 100mm samples is 0.000155%
 DEFAULT_RANDOM_CHARS = 12
 
+# Import centralized config for default output paths
+from ssa.config import DEFAULT_OUTPUT_BASE as _DEFAULT_OUTPUT_BASE_PATH
+
 # Default base directory for debug outputs when output_dir is not configured
-DEFAULT_OUTPUT_BASE = Path(f"results/unknown/run-{time.strftime('%Y%m%d_%H%M%S')}")
+# Creates a timestamped run directory under the centralized base path
+DEFAULT_OUTPUT_BASE = _DEFAULT_OUTPUT_BASE_PATH / f"run-{time.strftime('%Y%m%d_%H%M%S')}"
 
 EST = pytz.timezone("America/New_York")
 

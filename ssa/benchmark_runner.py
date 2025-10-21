@@ -31,14 +31,6 @@ from ssa.utils.logging import log
 from ssa.utils.reasoning_trace import ReasoningTraceCollector, default_json_handler
 from ssa.utils.system import default_context, get_subconfigs
 
-# Retry configuration
-# Uses coordinated tenacity retry logic to prevent retry multiplication
-# Tenacity retries are managed separately from HTTP-level retries
-# Retries only happen for errors classified as "retryable" (network issues, timeouts, etc.)
-# Actual retry counts are determined by IgModel.retry_config
-MAX_GENERATION_RETRIES = 4  # Deprecated - now managed by RetryConfig
-GENERATION_RETRY_DELAY = 20  # seconds
-
 
 def resolve_benchmark_config(scoring_keys, bench_config_overrides):
     """
@@ -348,48 +340,20 @@ def _process_prompt_result(
 
     return current_prompt_result, failed_gen, failed_scoring_prompts
 
-def simple_eval_standardized(
-    images_dir: str,
-    model_scorers: Dict[str, ModelScorer],
-    rescoring: bool = False,
-    execution_config: Optional[Dict[str, Any]] = None,
-    trace_collector: Optional[ReasoningTraceCollector] = None,
-):
+def _load_and_parse_images(images_dir: str) -> List[tuple]:
     """
-    Standardized evaluation loop using new scoring infrastructure with direct image loading.
-    Extracts prompts from image filenames in format: {prompt}_{img_num}.ext
-    Returns same format as simple_eval for compatibility.
+    Load images from directory and extract prompts from filenames.
+
+    Args:
+        images_dir: Directory containing images with prompt-encoded filenames
+
+    Returns:
+        List of (image_file_path, Prompt) tuples
     """
     from pathlib import Path
-    from PIL import Image as PILImage
+    from ssa.config import SUPPORTED_IMAGE_FORMATS
     from ssa.prompts import Prompt, gen_prompt_id
-    from ssa.scoring import SCORING_METHODS
-    from ssa.scoring.adapters import create_scorer_adapter
-    from ssa.scoring.runner import (
-        StandardizedBenchmarkRunner,
-    )
 
-    # # Initialize base aggregators (same as original)
-    # latency_agg = Aggregator("latency")
-    # gpu_latency_agg = Aggregator("gpu_latency")
-    # cost_agg = Aggregator("cost")
-
-    # # Initialize parallel execution
-    # parallel_exec_config = get_parallel_config(execution_config, default_enabled=False)
-    # parallel_generator = ParallelImageGenerator(parallel_exec_config)
-
-    # log.info(
-    #     f"Parallel execution: {'enabled' if parallel_exec_config.enabled else 'disabled'}"
-    # )
-    # if parallel_exec_config.enabled:
-    #     log.info(
-    #         f"Max workers: {parallel_exec_config.max_workers}, Batch size: {parallel_exec_config.batch_size}"
-    #     )
-
-    failed_gen = 0
-    failed_scoring_prompts = 0
-
-    # Load all images from directory and extract prompts from filenames
     images_path = Path(images_dir)
     if not images_path.exists():
         raise ValueError(f"Images directory does not exist: {images_dir}")
@@ -398,7 +362,7 @@ def simple_eval_standardized(
     # Format: {prompt}_{img_num}.ext
     image_prompt_pairs = []
     for img_file in images_path.glob("*"):
-        if img_file.suffix.lower() in ['.png', '.jpg', '.jpeg', '.webp']:
+        if img_file.suffix.lower() in SUPPORTED_IMAGE_FORMATS:
             # Parse filename: split by underscore, everything before last underscore is the prompt
             filename_no_ext = img_file.stem
             parts = filename_no_ext.rsplit('_', 1)
@@ -425,19 +389,35 @@ def simple_eval_standardized(
     if image_prompt_pairs:
         log.info(f"Example: '{image_prompt_pairs[0][1].text}' from '{image_prompt_pairs[0][0].name}'")
 
-    # Create a minimal corpus-like object for scorers that need it
-    prompts_list = [pair[1] for pair in image_prompt_pairs]
+    return image_prompt_pairs
 
-    # Create standardized scorers using the factory function
+
+def _create_standardized_scorers(
+    model_scorers: Dict[str, "ModelScorer"],
+    prompts_list: List["Prompt"]
+) -> List["ScorerInterface"]:
+    """
+    Create standardized scorer adapters from model scorers.
+
+    Args:
+        model_scorers: Dict mapping scorer keys to ModelScorer instances
+        prompts_list: List of prompts for scorer initialization
+
+    Returns:
+        List of standardized scorer adapters
+    """
+    from ssa.scoring import SCORING_METHODS
+    from ssa.scoring.adapters import create_scorer_adapter
+
     standardized_scorers = []
 
     for scorer_key, model_scorer in model_scorers.items():
         if scorer_key in SCORING_METHODS:
             try:
                 adapter = create_scorer_adapter(
-                    scorer_key,  # Use scorer_key directly as it's the same as adapter_key
+                    scorer_key,
                     model_scorer,
-                    corpus=None,  # No corpus needed
+                    corpus=None,
                     corpus_prompts=prompts_list,
                 )
                 standardized_scorers.append(adapter)
@@ -446,31 +426,36 @@ def simple_eval_standardized(
         else:
             log.warning(f"No adapter available for scorer: {scorer_key}")
 
-    # Create standardized runner
-    runner = StandardizedBenchmarkRunner(standardized_scorers)
+    return standardized_scorers
+
+
+def _process_image_prompts(
+    image_prompt_pairs: List[tuple],
+    runner: "StandardizedBenchmarkRunner",
+    trace_collector: Optional["ReasoningTraceCollector"] = None
+) -> tuple[List[Dict[str, Any]], int, int]:
+    """
+    Process each image-prompt pair and collect scoring results.
+
+    Args:
+        image_prompt_pairs: List of (image_path, prompt) tuples
+        runner: Standardized benchmark runner for scoring
+        trace_collector: Optional trace collector for recording
+
+    Returns:
+        Tuple of (run_results, failed_gen_count, failed_scoring_count)
+    """
+    from pathlib import Path
+    from PIL import Image as PILImage
+    from ssa.interfaces import ImageInfo
+    from ssa.scoring.runner import create_prompt_context_from_legacy
 
     run_results: List[Dict[str, Any]] = []
-
-    # Warm up standardized scorers
-    for scorer in standardized_scorers:
-        try:
-            log.info(f"Warming up {scorer.scorer_name} scorer...")
-            scorer.warmup()
-            log.info(f"Successfully warmed up {scorer.scorer_name} scorer.")
-        except Exception as e:
-            log.error(
-                f"Error during warmup for {scorer.scorer_name} scorer: {e}",
-                exc_info=True,
-            )
-
+    failed_gen = 0
+    failed_scoring_prompts = 0
     total_prompts = len(image_prompt_pairs)
     job_t0 = time.time()
 
-    # Initialize trace collector
-    if trace_collector:
-        trace_collector.clear()
-
-    # Process each image-prompt pair
     for pidx, (img_file, prompt) in enumerate(image_prompt_pairs):
         log.info(
             f"Image {pidx + 1}/{total_prompts} id={prompt.id} : {prompt.text}"
@@ -487,16 +472,12 @@ def simple_eval_standardized(
 
         try:
             loaded_image = PILImage.open(image_path)
-            # Create a minimal image object that mimics the expected structure
-            class ImageWrapper:
-                def __init__(self, pil_image, path, prompt_id):
-                    self.info = {
-                        "path": path,
-                        "image_id": prompt_id,
-                    }
-                    self._pil_image = pil_image
-
-            generated_image = ImageWrapper(loaded_image, image_path, prompt.id)
+            # Create standardized image info object
+            generated_image = ImageInfo(
+                path=image_path,
+                image_id=prompt.id,
+                pil_image=loaded_image
+            )
             log.info(f"Loaded image from {image_path}")
         except Exception as e:
             log.error(f"Failed to load image {image_path}: {e}")
@@ -504,8 +485,6 @@ def simple_eval_standardized(
             error_message = f"Failed to load image: {e}"
 
         # Create prompt context for scoring
-        from ssa.scoring.runner import create_prompt_context_from_legacy
-
         current_prompt_result: Dict[str, Any] = {
             "prompt": prompt.to_dict(),
             "prompt_id": prompt.id,
@@ -548,7 +527,71 @@ def simple_eval_standardized(
     log.info(f"Completed evaluation of {total_prompts} prompts")
     log.info(f"Failed to load: {failed_gen}, Failed scoring: {failed_scoring_prompts}")
 
-    # Aggregate results
+    return run_results, failed_gen, failed_scoring_prompts
+
+
+def simple_eval_standardized(
+    images_dir: str,
+    model_scorers: Dict[str, ModelScorer],
+    rescoring: bool = False,
+    execution_config: Optional[Dict[str, Any]] = None,
+    trace_collector: Optional[ReasoningTraceCollector] = None,
+):
+    """
+    Standardized evaluation loop using new scoring infrastructure with direct image loading.
+    Extracts prompts from image filenames in format: {prompt}_{img_num}.ext
+    Returns same format as simple_eval for compatibility.
+
+    This function orchestrates the evaluation by:
+    1. Loading and parsing images from the directory
+    2. Creating standardized scorer adapters
+    3. Processing each image-prompt pair with scoring
+    4. Aggregating final metrics
+
+    Args:
+        images_dir: Directory containing images with prompt-encoded filenames
+        model_scorers: Dict mapping scorer keys to ModelScorer instances
+        rescoring: Whether this is a rescoring run (currently unused)
+        execution_config: Optional execution configuration
+        trace_collector: Optional trace collector for recording
+
+    Returns:
+        Tuple of (aggregated_metrics, run_results, active_scorers_dict)
+    """
+    from ssa.scoring.runner import StandardizedBenchmarkRunner
+
+    # Step 1: Load and parse images from directory
+    image_prompt_pairs = _load_and_parse_images(images_dir)
+
+    # Step 2: Extract prompts list and create standardized scorers
+    prompts_list = [pair[1] for pair in image_prompt_pairs]
+    standardized_scorers = _create_standardized_scorers(model_scorers, prompts_list)
+
+    # Create standardized runner
+    runner = StandardizedBenchmarkRunner(standardized_scorers)
+
+    # Warm up standardized scorers
+    for scorer in standardized_scorers:
+        try:
+            log.info(f"Warming up {scorer.scorer_name} scorer...")
+            scorer.warmup()
+            log.info(f"Successfully warmed up {scorer.scorer_name} scorer.")
+        except Exception as e:
+            log.error(
+                f"Error during warmup for {scorer.scorer_name} scorer: {e}",
+                exc_info=True,
+            )
+
+    # Initialize trace collector
+    if trace_collector:
+        trace_collector.clear()
+
+    # Step 3: Process each image-prompt pair
+    run_results, failed_gen, failed_scoring_prompts = _process_image_prompts(
+        image_prompt_pairs, runner, trace_collector
+    )
+
+    # Step 4: Aggregate results
     agg = {
         "failed_gen": failed_gen,
         "failed_scoring_prompts": failed_scoring_prompts,

@@ -9,6 +9,81 @@ from ssa.scoring.interfaces import BenchmarkScoreResult, ScoreResult, ScorerInte
 from ssa.utils.logging import log
 
 
+class BaseSpatialNumeracyAdapter(ScorerInterface):
+    """
+    Base adapter for Spatial and Numeracy scorers with shared logic.
+
+    This class extracts common functionality from SpatialScorerAdapter and NumeracyScorerAdapter
+    to eliminate code duplication.
+    """
+
+    def __init__(
+        self,
+        model_scorer,
+        config: Optional[Dict[str, Any]] = None,
+        corpus=None,
+        corpus_prompts=None,
+        benchmark_scorer=None,
+        scorer_key: str = None,
+        metrics: List[str] = None,
+    ):
+        self.model_scorer = model_scorer
+        self.config = config or {}
+        self.corpus = corpus
+        self.corpus_prompts = corpus_prompts
+        self._scorer_key = scorer_key
+        self._metrics = metrics or []
+        self.benchmark_scorer = benchmark_scorer
+
+    def _evaluate_and_populate(
+        self, prompt: str, image: Any, context: Dict[str, Any], scorer_name: str
+    ) -> tuple[float, list, bool]:
+        """
+        Common evaluation logic for spatial/numeracy scorers.
+
+        Args:
+            prompt: Text prompt to evaluate
+            image: Image to evaluate against
+            context: Evaluation context with metadata
+            scorer_name: Name of the scorer for result keys
+
+        Returns:
+            Tuple of (score, non_conformity, correctness)
+        """
+        # Evaluate with model - returns (score, non_conformity, correctness)
+        score, non_conformity, correctness = self.model_scorer.model.evaluate(
+            image, prompt
+        )
+
+        # Populate benchmark scorer aggregators
+        from ssa.prompts import Prompt
+
+        prompt_obj = context.get("prompt_obj")
+        prompt_id = context.get("prompt_id", "unknown")
+
+        if prompt_obj is None:
+            prompt_obj = Prompt(text=prompt, id=prompt_id)
+
+        self.benchmark_scorer.score_prompt(
+            prompt=prompt_obj,
+            image=image,
+            image_path=context.get("image_path"),
+            prompt_result={},
+            running_metrics={},
+        )
+
+        return score, non_conformity, correctness
+
+    def aggregate_metrics(self, final_agg_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """Delegate aggregate_metrics to the underlying benchmark scorer."""
+        return self.benchmark_scorer.aggregate_metrics(final_agg_dict)
+
+    def warmup(self):
+        """Warmup the underlying model."""
+        if hasattr(self.model_scorer, "warmup"):
+            self.model_scorer.warmup()
+
+
 class OdAttrBindingScorerAdapter(ScorerInterface):
     """Adapter for Object Detection-Based Attribute Binding scorer."""
 
@@ -117,7 +192,7 @@ class OdAttrBindingScorerAdapter(ScorerInterface):
         return final_agg_dict
 
 
-class SpatialScorerAdapter(ScorerInterface):
+class SpatialScorerAdapter(BaseSpatialNumeracyAdapter):
     """Adapter for Spatial reasoning scorer."""
 
     def __init__(
@@ -128,25 +203,28 @@ class SpatialScorerAdapter(ScorerInterface):
         corpus_prompts=None,
         benchmark_scorer=None,
     ):
-        self.model_scorer = spatial_model_scorer
-        self.config = config or {}
-        self.corpus = corpus
-        self.corpus_prompts = corpus_prompts
-        self._metrics = ["spatial_score"]
-
         # Use dependency injection for benchmark scorer, with default fallback
-        if benchmark_scorer is not None:
-            self.benchmark_scorer = benchmark_scorer
-        else:
+        if benchmark_scorer is None:
             # Default: create benchmark scorer instance for proper aggregation
             from ssa.benchmark_scorers.spatial_scorer import SpatialBenchmarkScorer
 
-            self.benchmark_scorer = SpatialBenchmarkScorer(
+            benchmark_scorer = SpatialBenchmarkScorer(
                 model_scorer=spatial_model_scorer,
                 corpus=corpus,
                 corpus_prompts=corpus_prompts,
                 scorer_key="spatial",
             )
+
+        # Initialize base class
+        super().__init__(
+            model_scorer=spatial_model_scorer,
+            config=config,
+            corpus=corpus,
+            corpus_prompts=corpus_prompts,
+            benchmark_scorer=benchmark_scorer,
+            scorer_key="spatial",
+            metrics=["spatial_score"],
+        )
 
     def score_prompt(
         self, prompt: str, response: Any, context: Dict[str, Any]
@@ -160,24 +238,9 @@ class SpatialScorerAdapter(ScorerInterface):
             if image is None:
                 raise ValueError("Image not provided for Spatial scoring")
 
-            # Evaluate with Spatial model - returns (spatial_score, non_conformity, correctness)
-            spatial_score, non_conformity, correctness = (
-                self.model_scorer.model.evaluate(image, prompt)
-            )
-
-            # Also call the benchmark scorer to populate its aggregators
-            from ssa.prompts import Prompt
-
-            prompt_obj = context.get("prompt_obj")
-            if prompt_obj is None:
-                prompt_obj = Prompt(text=prompt, id=prompt_id)
-
-            self.benchmark_scorer.score_prompt(
-                prompt=prompt_obj,
-                image=image,
-                image_path=context.get("image_path"),
-                prompt_result={},
-                running_metrics={},
+            # Use common evaluation logic from base class
+            spatial_score, non_conformity, correctness = self._evaluate_and_populate(
+                prompt, image, context, "spatial"
             )
 
             results = {
@@ -223,17 +286,8 @@ class SpatialScorerAdapter(ScorerInterface):
     def supported_metrics(self) -> List[str]:
         return self._metrics
 
-    def warmup(self) -> None:
-        """Warmup the underlying Spatial model."""
-        if hasattr(self.model_scorer, "warmup"):
-            self.model_scorer.warmup()
 
-    def aggregate_metrics(self, final_agg_dict: Dict[str, Any]) -> Dict[str, Any]:
-        """Delegate aggregate_metrics to the underlying Spatial benchmark scorer."""
-        return self.benchmark_scorer.aggregate_metrics(final_agg_dict)
-
-
-class NumeracyScorerAdapter(ScorerInterface):
+class NumeracyScorerAdapter(BaseSpatialNumeracyAdapter):
     """Adapter for Numeracy counting scorer."""
 
     def __init__(
@@ -244,25 +298,28 @@ class NumeracyScorerAdapter(ScorerInterface):
         corpus_prompts=None,
         benchmark_scorer=None,
     ):
-        self.model_scorer = numeracy_model_scorer
-        self.config = config or {}
-        self.corpus = corpus
-        self.corpus_prompts = corpus_prompts
-        self._metrics = ["numeracy_score"]
-
         # Use dependency injection for benchmark scorer, with default fallback
-        if benchmark_scorer is not None:
-            self.benchmark_scorer = benchmark_scorer
-        else:
+        if benchmark_scorer is None:
             # Default: create benchmark scorer instance for proper aggregation
             from ssa.benchmark_scorers.numeracy_scorer import NumeracyBenchmarkScorer
 
-            self.benchmark_scorer = NumeracyBenchmarkScorer(
+            benchmark_scorer = NumeracyBenchmarkScorer(
                 model_scorer=numeracy_model_scorer,
                 corpus=corpus,
                 corpus_prompts=corpus_prompts,
                 scorer_key="numeracy",
             )
+
+        # Initialize base class
+        super().__init__(
+            model_scorer=numeracy_model_scorer,
+            config=config,
+            corpus=corpus,
+            corpus_prompts=corpus_prompts,
+            benchmark_scorer=benchmark_scorer,
+            scorer_key="numeracy",
+            metrics=["numeracy_score"],
+        )
 
     def score_prompt(
         self, prompt: str, response: Any, context: Dict[str, Any]
@@ -276,24 +333,9 @@ class NumeracyScorerAdapter(ScorerInterface):
             if image is None:
                 raise ValueError("Image not provided for Numeracy scoring")
 
-            # Evaluate with Numeracy model - returns (numeracy_score, non_conformity, correctness)
-            numeracy_score, non_conformity, correctness = (
-                self.model_scorer.model.evaluate(image, prompt)
-            )
-
-            # Also call the benchmark scorer to populate its aggregators
-            from ssa.prompts import Prompt
-
-            prompt_obj = context.get("prompt_obj")
-            if prompt_obj is None:
-                prompt_obj = Prompt(text=prompt, id=prompt_id)
-
-            self.benchmark_scorer.score_prompt(
-                prompt=prompt_obj,
-                image=image,
-                image_path=context.get("image_path"),
-                prompt_result={},
-                running_metrics={},
+            # Use common evaluation logic from base class
+            numeracy_score, non_conformity, correctness = self._evaluate_and_populate(
+                prompt, image, context, "numeracy"
             )
 
             results = {
@@ -338,15 +380,6 @@ class NumeracyScorerAdapter(ScorerInterface):
     @property
     def supported_metrics(self) -> List[str]:
         return self._metrics
-
-    def warmup(self) -> None:
-        """Warmup the underlying Numeracy model."""
-        if hasattr(self.model_scorer, "warmup"):
-            self.model_scorer.warmup()
-
-    def aggregate_metrics(self, final_agg_dict: Dict[str, Any]) -> Dict[str, Any]:
-        """Delegate aggregate_metrics to the underlying Numeracy benchmark scorer."""
-        return self.benchmark_scorer.aggregate_metrics(final_agg_dict)
 
 
 def create_scorer_adapter(

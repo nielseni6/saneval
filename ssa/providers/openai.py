@@ -1,5 +1,6 @@
 import base64
 import json
+from contextlib import ExitStack
 from io import BytesIO
 
 import openai
@@ -233,10 +234,13 @@ class OpenAIProvider(BaseImageEditingMixin):
                     image_path = save_image_to_disk(image)
                     log.debug(f"Mapping image_prompt = {image_path}")
                 image_paths.append(image_path)
-            images = [open(path, "rb") for path in image_paths]
-            result = self.client.images.edit(
-                model="gpt-image-1", image=images, prompt=prompt, size=openai_size
-            )
+
+            # Use context managers to ensure files are properly closed
+            with ExitStack() as stack:
+                images = [stack.enter_context(open(path, "rb")) for path in image_paths]
+                result = self.client.images.edit(
+                    model="gpt-image-1", image=images, prompt=prompt, size=openai_size
+                )
         else:
             result = self.client.images.generate(
                 model="gpt-image-1", prompt=prompt, size=openai_size

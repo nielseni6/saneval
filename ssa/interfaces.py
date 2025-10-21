@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from PIL import Image
@@ -10,6 +11,26 @@ from ssa.prompts import Corpus, Prompt  # Added Corpus
 
 # Image type can be either a PIL Image or a string path
 ImageType = Union[Image.Image, str]
+
+
+@dataclass
+class ImageInfo:
+    """
+    Standardized container for image data with metadata.
+
+    Attributes:
+        path: File system path to the image
+        image_id: Unique identifier for the image
+        pil_image: PIL Image object
+    """
+    path: str
+    image_id: str
+    pil_image: Image.Image
+
+    @property
+    def info(self) -> Dict[str, str]:
+        """Return info dict for compatibility with legacy code."""
+        return {"path": self.path, "image_id": self.image_id}
 
 
 class ImageEditingCapability(ABC):
