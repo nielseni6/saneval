@@ -3,38 +3,31 @@ Suite of benchmarks for evaluating generated image composition.
 
 ## Installation
 
-### Automatic Setup (Recommended)
+### Prerequisites
+- Python 3.8 or higher
+- pip (latest version recommended)
 
-The setup script will automatically create a virtual environment for you:
+### Setup
+
+1. **Create and activate a virtual environment:**
 
 ```bash
-# Pre-setup (if pip is not updated)
-pip install --upgrade pip 
+# Create virtual environment
+python -m venv saneval_env
 
-# Step 1: Run setup to create the virtual environment
-python setup.py install
-
-# Step 2: Activate the virtual environment
+# Activate the environment
 source saneval_env/bin/activate  # Unix/Mac
 # OR
 saneval_env\Scripts\activate  # Windows
-
-# Step 3: Install the package in editable mode
-pip install -e .
 ```
 
-### Manual Setup
-
-If you prefer to manage your own virtual environment:
+2. **Install the package in editable mode:**
 
 ```bash
-# Create and activate your own virtual environment
-python -m venv myenv
-source myenv/bin/activate  # Unix/Mac
-
-# Install the package
 pip install -e .
 ```
+
+This will automatically install all required dependencies from requirements.txt.
 
 ## Authentication Setup
 
