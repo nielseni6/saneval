@@ -126,6 +126,7 @@ class SpatialScorerAdapter(ScorerInterface):
         config: Optional[Dict[str, Any]] = None,
         corpus=None,
         corpus_prompts=None,
+        benchmark_scorer=None,
     ):
         self.model_scorer = spatial_model_scorer
         self.config = config or {}
@@ -133,15 +134,19 @@ class SpatialScorerAdapter(ScorerInterface):
         self.corpus_prompts = corpus_prompts
         self._metrics = ["spatial_score"]
 
-        # Create benchmark scorer instance for proper aggregation
-        from ssa.benchmark_scorers.spatial_scorer import SpatialBenchmarkScorer
+        # Use dependency injection for benchmark scorer, with default fallback
+        if benchmark_scorer is not None:
+            self.benchmark_scorer = benchmark_scorer
+        else:
+            # Default: create benchmark scorer instance for proper aggregation
+            from ssa.benchmark_scorers.spatial_scorer import SpatialBenchmarkScorer
 
-        self.benchmark_scorer = SpatialBenchmarkScorer(
-            model_scorer=spatial_model_scorer,
-            corpus=corpus,
-            corpus_prompts=corpus_prompts,
-            scorer_key="spatial",
-        )
+            self.benchmark_scorer = SpatialBenchmarkScorer(
+                model_scorer=spatial_model_scorer,
+                corpus=corpus,
+                corpus_prompts=corpus_prompts,
+                scorer_key="spatial",
+            )
 
     def score_prompt(
         self, prompt: str, response: Any, context: Dict[str, Any]
@@ -237,6 +242,7 @@ class NumeracyScorerAdapter(ScorerInterface):
         config: Optional[Dict[str, Any]] = None,
         corpus=None,
         corpus_prompts=None,
+        benchmark_scorer=None,
     ):
         self.model_scorer = numeracy_model_scorer
         self.config = config or {}
@@ -244,15 +250,19 @@ class NumeracyScorerAdapter(ScorerInterface):
         self.corpus_prompts = corpus_prompts
         self._metrics = ["numeracy_score"]
 
-        # Create benchmark scorer instance for proper aggregation
-        from ssa.benchmark_scorers.numeracy_scorer import NumeracyBenchmarkScorer
+        # Use dependency injection for benchmark scorer, with default fallback
+        if benchmark_scorer is not None:
+            self.benchmark_scorer = benchmark_scorer
+        else:
+            # Default: create benchmark scorer instance for proper aggregation
+            from ssa.benchmark_scorers.numeracy_scorer import NumeracyBenchmarkScorer
 
-        self.benchmark_scorer = NumeracyBenchmarkScorer(
-            model_scorer=numeracy_model_scorer,
-            corpus=corpus,
-            corpus_prompts=corpus_prompts,
-            scorer_key="numeracy",
-        )
+            self.benchmark_scorer = NumeracyBenchmarkScorer(
+                model_scorer=numeracy_model_scorer,
+                corpus=corpus,
+                corpus_prompts=corpus_prompts,
+                scorer_key="numeracy",
+            )
 
     def score_prompt(
         self, prompt: str, response: Any, context: Dict[str, Any]

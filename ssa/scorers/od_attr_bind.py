@@ -913,7 +913,7 @@ Respond with only a number between 0.0 and 1.0 (e.g., "0.8")."""
                 [d["bbox"] for d in target_detections],
                 [d["confidence"] for d in target_detections],
                 title=f'Prompt: "{prompt}" | {targets_str} | Final: {final_score:.2f}',
-                save_path=f"data/debug/scorers/od-attr-bind/{self.config.od_model.replace('/', '')}/{self.config.pred_classes}/{self.ig_version.replace('/', '')}/run-{self.current_run_time}/",
+                save_path=f"data/debug/scorers/od-attr-bind/",
             )
             log.debug(f"Debug image saved to: {debug_img_path}")
 

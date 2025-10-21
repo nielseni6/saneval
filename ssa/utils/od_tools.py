@@ -118,14 +118,17 @@ def plot_bboxes(
     plt.axis("off")  # Hide axes
 
     save_name = f"debug_image_{img_basename}.png"
-    # Create directory for debug image if it doesn't exist
+
+    # Determine save path
     if save_path is None:
-        debug_dir = os.path.dirname("ssa/thirdparty/saneval/data/examples/debug/")
-        os.makedirs(debug_dir, exist_ok=True)
-        debug_save_path = f"ssa/thirdparty/saneval/data/examples/debug/{save_name}"
+        # Default fallback for backward compatibility
+        debug_save_path = f"results/unknown/{save_name}"
+        os.makedirs("results/unknown", exist_ok=True)
     else:
+        # Use provided save_path (typically from scorer config)
         debug_save_path = os.path.join(save_path, save_name)
-        os.makedirs(os.path.dirname(debug_save_path), exist_ok=True)
+        os.makedirs(save_path, exist_ok=True)
+
     plt.savefig(debug_save_path, bbox_inches="tight")
     plt.close()
 

@@ -266,13 +266,34 @@ class SpatialNumeracyBase(BaseScorer):
             log.debug(f"Bounding boxes: {obj_bounding_box}")
             log.debug(f"Instance scores: {instance_score}")
 
+            # Determine save path for debug images
+            if self.config.output_dir:
+                # Use output_dir/bbox_imgs/ when running via benchmark
+                base_path = Path(self.config.output_dir) / "bbox_imgs"
+                debug_save_path = (
+                    base_path
+                    / f"{self.get_scorer_name().lower()}"
+                    / f"{self.config.od_model.replace('/', '')}"
+                    / f"{self.config.pred_classes}"
+                    / f"run-{self.current_run_time}"
+                )
+            else:
+                # Fallback to legacy path for backward compatibility
+                debug_save_path = Path(
+                    f"results/unknown/"
+                    f"{self.get_scorer_name().lower()}/"
+                    f"{self.config.od_model.replace('/', '')}/"
+                    f"{self.config.pred_classes}/"
+                    f"run-{self.current_run_time}"
+                )
+
             debug_img_path = plot_bboxes(
                 image_path,
                 obj_filtered,
                 obj_bounding_box_filtered,
                 instance_score_filtered,
                 title=f'Prompt: "{prompt}" ({self.get_scorer_name()}: {score:.2f})',
-                save_path=f"ssa/thirdparty/saneval/data/examples/debug/{self.get_scorer_name().lower()}/{self.config.od_model.replace('/', '')}/{self.config.pred_classes}/run-{self.current_run_time}/",
+                save_path=str(debug_save_path),
             )
             log.debug(f"Debug image saved to: {debug_img_path}")
 

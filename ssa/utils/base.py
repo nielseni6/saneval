@@ -6,6 +6,7 @@ import string
 from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
+from typing import Optional
 
 import pytz
 
@@ -41,9 +42,44 @@ def hash_str_to_alphanumeric(text: str, chars=22) -> str:
     )
 
 
-base_tempdir = Path("/tmp/ssa/")
-run_tempdir = base_tempdir / unique_id()
-os.makedirs(run_tempdir, exist_ok=True)
+# Private module-level variables for lazy initialization
+_base_tempdir: Optional[Path] = None
+_run_tempdir: Optional[Path] = None
+
+
+def get_base_tempdir() -> Path:
+    """
+    Get the base temporary directory, creating it if needed.
+
+    Uses lazy initialization to avoid creating directories at import time.
+    The directory can be customized via the SSA_TEMP_DIR environment variable.
+
+    Returns:
+        Path to the base temporary directory (default: /tmp/ssa/)
+    """
+    global _base_tempdir
+    if _base_tempdir is None:
+        _base_tempdir = Path(os.getenv("SSA_TEMP_DIR", "/tmp/ssa"))
+        _base_tempdir.mkdir(parents=True, exist_ok=True)
+    return _base_tempdir
+
+
+def get_run_tempdir() -> Path:
+    """
+    Get the run-specific temporary directory, creating it if needed.
+
+    Uses lazy initialization to avoid creating directories at import time.
+    Each call to reset_run_dir() will update this directory.
+
+    Returns:
+        Path to the run-specific temporary directory
+    """
+    global _run_tempdir
+    if _run_tempdir is None:
+        base_dir = get_base_tempdir()
+        _run_tempdir = base_dir / unique_id()
+        _run_tempdir.mkdir(parents=True, exist_ok=True)
+    return _run_tempdir
 
 
 def prepare_artifact_path(name_prefix="temp", suffix="", run_id=0):
@@ -51,10 +87,10 @@ def prepare_artifact_path(name_prefix="temp", suffix="", run_id=0):
     Generates a unique, non-existent file path within /tmp/ssa/{run_id}/,
     intended for final output files such as run_result.json and aggregates.json.
     """
-    global base_tempdir
+    base_dir = get_base_tempdir()
 
     # Making a unique directory for run_result.json and aggregates.json
-    unique_dir = base_tempdir / run_id
+    unique_dir = base_dir / run_id
     os.makedirs(unique_dir, exist_ok=True)
 
     # Return Path to that directory and file
@@ -71,27 +107,34 @@ def create_temp_download_directory(
     Creates a unique temporary directory for a specific run, organized by experiment.
     /tmp/ssa/{experiment_name}/{run_id}
     """
-    global base_tempdir
+    base_dir = get_base_tempdir()
     random_str = f"-{short_randomstr(num=random_chars)}" if random_chars else ""
-    unique_dir = base_tempdir / experiment_name / random_str / run_id
+    unique_dir = base_dir / experiment_name / random_str / run_id
     os.makedirs(unique_dir)
     res = Path(unique_dir)
     return res
 
 
 def reset_run_dir(name=None):
-    global run_tempdir
+    """
+    Reset the run-specific temporary directory.
+
+    Args:
+        name: Optional name for the run directory. If not provided, generates a unique ID.
+    """
+    global _run_tempdir
+    base_dir = get_base_tempdir()
     run_dir_name = name or unique_id()
-    run_tempdir = base_tempdir / run_dir_name
-    os.makedirs(run_tempdir, exist_ok=True)
+    _run_tempdir = base_dir / run_dir_name
+    _run_tempdir.mkdir(parents=True, exist_ok=True)
 
 
 def get_temp_file(name_prefix="temp", suffix="", random_chars=DEFAULT_RANDOM_CHARS):
     """Get a tempfile inside the current run_tempdir"""
-    global run_tempdir
+    run_dir = get_run_tempdir()
     random_str = f"-{short_randomstr(num=random_chars)}" if random_chars else ""
     filename = f"{name_prefix}{random_str}{suffix}"
-    res = Path(run_tempdir) / filename
+    res = Path(run_dir) / filename
     assert not res.exists()
     return res
 

@@ -144,9 +144,12 @@ def benchmark_model(
     # Create trace collector for this benchmark run
     trace_collector = ReasoningTraceCollector()
 
-    # Inject trace collector into all scorers
+    # Inject trace collector and output_dir into all scorers
     for scorer in scorers.values():
         scorer.set_trace_collector(trace_collector)
+        # Set output directory for debug outputs (e.g., bounding box visualizations)
+        if hasattr(scorer.model, 'config'):
+            scorer.model.config.output_dir = str(output_dir)
 
     agg, run_results, active_benchmark_scorers = simple_eval(
         images_dir,

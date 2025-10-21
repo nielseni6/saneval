@@ -12,7 +12,7 @@ log = get_log(__file__)
 
 
 class BaseScorerConfig(BaseModel):
-    pass
+    output_dir: Optional[str] = None  # Directory for saving debug outputs
 
 
 class BaseScorer(ABC):
