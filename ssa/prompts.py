@@ -5,9 +5,12 @@ import json
 from dataclasses import asdict, dataclass, field
 from hashlib import sha256
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import yaml
+
+# Type alias for extras dictionary - allows common JSON-serializable types
+ExtrasType = Dict[str, Union[str, int, float, bool, List[Any], Dict[str, Any]]]
 
 ## TODO: replace s3 utils with local image loading from a specified path
 # from ssa.aws.s3 import get_image_from_s3, get_s3_cached, list_s3, parse_s3_uri
@@ -56,8 +59,8 @@ class Prompt:
     input_caption: str = None
     output_caption: str = None
 
-    # Use this to hold any extra metadata for prompts
-    extras: Dict[str, Any] = field(default_factory=dict)
+    # Use this to hold any extra metadata for prompts (JSON-serializable types only)
+    extras: ExtrasType = field(default_factory=dict)
 
     # For synthetically generated and extended prompts
     num_extensions: int = None
@@ -75,7 +78,7 @@ def hash_prompts(prompts: list[Prompt]) -> str:
     return hasher.hexdigest()
 
 
-def gen_prompt_id(text, image=None):
+def gen_prompt_id(text: str, image: Optional[Any] = None) -> str:
     """Canonical prompt id is just hash of prompt text + image into a uuid"""
     if image is not None:
         if not isinstance(image, str):
@@ -194,20 +197,44 @@ def read_corpus_dir(key):
     return None
 
 
-def load_corpus_file(key, data_file, validate_only=False):
+def validate_corpus_file(data_file: Union[str, Path]) -> bool:
+    """
+    Validate that a corpus file exists and has a supported format.
+
+    Args:
+        data_file: Path to the corpus file
+
+    Returns:
+        True if the file is valid, raises NotImplementedError otherwise
+    """
+    data_file_suffix = str(data_file).split(".")[-1]
+
+    if data_file_suffix in {"yaml", "yml", "json"}:
+        return True
+    else:
+        raise NotImplementedError(f"Unsupported corpus type: {data_file}")
+
+
+def load_corpus_file(key: str, data_file: Union[str, Path]) -> Corpus:
+    """
+    Load a corpus from a file.
+
+    Args:
+        key: Identifier for the corpus
+        data_file: Path to the corpus file (YAML or JSON)
+
+    Returns:
+        Loaded Corpus object
+    """
     data_file_suffix = str(data_file).split(".")[-1]
 
     if data_file_suffix in {"yaml", "yml"}:
-        if validate_only:
-            return True
         with open(data_file, "r") as file:
             data = yaml.load(file, Loader=yaml.FullLoader)
             res = Corpus(key, to_prompts_list(data))
             _inline[key] = res
             return res
     elif data_file_suffix == "json":
-        if validate_only:
-            return True
         with open(data_file, "r") as file:
             data = json.loads(file)
             res = Corpus(key, to_prompts_list(data))
@@ -217,8 +244,18 @@ def load_corpus_file(key, data_file, validate_only=False):
         raise NotImplementedError(f"Unsupported corpus type: {data_file}")
 
 
-def get_corpus(key, validate_only=False):
-    """Lazy loading larger corpora"""
+def get_corpus(key: str, validate_only: bool = False) -> Union[bool, Corpus]:
+    """
+    Lazy loading larger corpora.
+
+    Args:
+        key: Corpus identifier or path
+        validate_only: If True, only validate the corpus file without loading
+
+    Returns:
+        If validate_only=True, returns True if valid
+        Otherwise, returns the Corpus object
+    """
     global _inline
     if key in _inline:
         if validate_only:
@@ -228,12 +265,16 @@ def get_corpus(key, validate_only=False):
     # Try as relative path from data/prompts/
     local_path = data_prompts / key
     if local_path.exists():
-        return load_corpus_file(key, local_path, validate_only=validate_only)
+        if validate_only:
+            return validate_corpus_file(local_path)
+        return load_corpus_file(key, local_path)
 
     # Try key as absolute/relative path
     local_path = Path(key)
     if local_path.exists():
-        return load_corpus_file(key, local_path, validate_only=validate_only)
+        if validate_only:
+            return validate_corpus_file(local_path)
+        return load_corpus_file(key, local_path)
 
     raise Exception(
         f"Corpus {key} not found in data/prompts/ or as absolute/relative path"

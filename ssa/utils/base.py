@@ -28,16 +28,16 @@ ssa_base = Path(__file__).parent.parent
 repo_base = ssa_base.parent
 
 
-def short_randomstr(num=DEFAULT_RANDOM_CHARS):
+def short_randomstr(num: int = DEFAULT_RANDOM_CHARS) -> str:
     return "".join(random.choice(alphanumeric_characters) for _ in range(num))
 
 
-def unique_id(name="run", random_chars=DEFAULT_RANDOM_CHARS):
+def unique_id(name: str = "run", random_chars: int = DEFAULT_RANDOM_CHARS) -> str:
     now = datetime.now(pytz.UTC).astimezone(EST)
     return f"{now.strftime('%Y-%m-%d-%H%M')}-{name}-{short_randomstr(num=random_chars)}"
 
 
-def hash_str_to_alphanumeric(text: str, chars=22) -> str:
+def hash_str_to_alphanumeric(text: str, chars: int = 22) -> str:
     # Generate SHA256 hash (256 bits)
     hash_bytes = sha256(text.encode()).digest()
     # Encode in base64, remove non-alphanumeric, and take first n chars

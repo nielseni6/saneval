@@ -16,7 +16,7 @@ import json
 import time
 from pathlib import Path
 from pprint import pformat
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Union
 
 from ssa.scorers.model_scorer import (
     ModelScorer,
@@ -209,7 +209,10 @@ def benchmark_model(
     return str(output_dir)
 
 
-def remove_circular_refs(obj, seen=None):
+def remove_circular_refs(
+    obj: Union[Dict[str, Any], List[Any], Any],
+    seen: Optional[Set[int]] = None
+) -> Union[Dict[str, Any], List[Any], str, None, int, float, bool]:
     """
     Recursively remove circular references and non-serializable objects from a data structure.
     Returns a version safe for JSON serialization.

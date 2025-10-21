@@ -1,3 +1,7 @@
+from typing import Any, Dict, Optional, Union
+
+from PIL import Image
+
 from ssa.caching import (
     get_cache_statistics,
     get_global_cache,
@@ -53,17 +57,17 @@ def _format_unsupported_version_error(
 
 
 def _cached_model_call(
-    model_instance,
+    model_instance: Union["Llm", "Vlm"],
     model_type: str,
-    query,
-    image=None,
-    schema=None,
-    seed=None,
-    temperature=None,
-    use_cache=False,
-    scorer_name=None,
-    step_description=None,
-):
+    query: str,
+    image: Optional[Union[Image.Image, str]] = None,
+    schema: Optional[Dict[str, Any]] = None,
+    seed: Optional[int] = None,
+    temperature: Optional[float] = None,
+    use_cache: Optional[bool] = False,
+    scorer_name: Optional[str] = None,
+    step_description: Optional[str] = None,
+) -> str:
     """
     Shared cached call implementation for both Llm and Vlm classes.
 

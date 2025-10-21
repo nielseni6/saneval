@@ -1,13 +1,15 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+
+from PIL import Image
 
 if TYPE_CHECKING:
     from ssa.scorers.model_scorer import ModelScorer
 
 from ssa.prompts import Corpus, Prompt  # Added Corpus
 
-# Placeholder for Image type, replace with actual type if available
-ImageType = Any
+# Image type can be either a PIL Image or a string path
+ImageType = Union[Image.Image, str]
 
 
 class ImageEditingCapability(ABC):
