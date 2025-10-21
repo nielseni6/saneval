@@ -34,6 +34,24 @@ LLM_VERSIONS = VLM_VERSIONS | {}
 log = get_log(__file__)
 
 
+def _format_unsupported_version_error(
+    model_type: str, key: str, available_versions: dict
+) -> str:
+    """
+    Format a standardized error message for unsupported model versions.
+
+    Args:
+        model_type: Type of model (e.g., "LLM", "VLM")
+        key: The unsupported version key provided
+        available_versions: Dictionary of available versions
+
+    Returns:
+        Formatted error message string
+    """
+    versions_list = ", ".join(f"'{v}'" for v in sorted(available_versions.keys()))
+    return f"Unsupported {model_type} version: '{key}'. Available versions: {versions_list}"
+
+
 def _cached_model_call(
     model_instance,
     model_type: str,
@@ -102,7 +120,7 @@ def _cached_model_call(
                     model_type, query, cached_response, scorer_name, step_description
                 )
                 return cached_response
-        except Exception as e:
+        except (ValueError, TypeError, UnicodeError, KeyError, AttributeError) as e:
             log.warning(
                 f"Cache lookup failed for {model_instance.key}: {e}. Proceeding without cache."
             )
@@ -125,7 +143,7 @@ def _cached_model_call(
                 temperature=temperature,
                 metadata={"instance_class": model_instance.__class__.__name__},
             )
-        except Exception as e:
+        except (ValueError, TypeError, UnicodeError, KeyError, AttributeError) as e:
             log.warning(
                 f"Failed to cache response for {model_instance.key}: {e}. Response not cached."
             )
@@ -149,8 +167,8 @@ class Llm:
     ):
         self.key = key
         if key not in LLM_VERSIONS:
-            raise Exception(
-                f"Unrecognized LLM {key}.\nKnown versions: {(LLM_VERSIONS.keys())}"
+            raise ValueError(
+                _format_unsupported_version_error("LLM", key, LLM_VERSIONS)
             )
         self.model = LLM_VERSIONS[key](key, config_overrides=config_overrides)
         self.version = self.model.version
@@ -251,8 +269,8 @@ class Vlm(Llm):
     ):
         self.key = key
         if key not in VLM_VERSIONS:
-            raise Exception(
-                f"Unrecognized VLM {key}.\nKnown versions: {list(VLM_VERSIONS.keys())}"
+            raise ValueError(
+                _format_unsupported_version_error("VLM", key, VLM_VERSIONS)
             )
         self.model = VLM_VERSIONS[key](key, config_overrides=config_overrides)
         self.version = self.model.version

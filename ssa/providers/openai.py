@@ -207,6 +207,10 @@ class OpenAIProvider(BaseImageEditingMixin):
         image_prompt_strength: float = 0.5,
         aspect_ratio: str = None,
     ) -> Image.Image:
+        # Validate prompt parameter
+        if not prompt or not prompt.strip():
+            raise ValueError("Prompt cannot be empty")
+
         # Use unified aspect ratio resolution system
         final_width, final_height, final_aspect_ratio = (
             resolve_aspect_ratio_and_dimensions(
