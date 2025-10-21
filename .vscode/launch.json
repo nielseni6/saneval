@@ -28,7 +28,7 @@
                 "od-attr-binding"
             ],
             "env": {
-                "GOOGLE_API_KEY": "your-key"
+                "GOOGLE_API_KEY": "${env:GOOGLE_API_KEY}"
             },
             "cwd": "${workspaceFolder}"
         },
@@ -48,7 +48,7 @@
                 "numeracy"
             ],
             "env": {
-                "GOOGLE_API_KEY": "your-key"
+                "GOOGLE_API_KEY": "${env:GOOGLE_API_KEY}"
             },
             "cwd": "${workspaceFolder}"
         },
@@ -68,7 +68,7 @@
                 "spatial"
             ],
             "env": {
-                "GOOGLE_API_KEY": "your-key"
+                "GOOGLE_API_KEY": "${env:GOOGLE_API_KEY}"
             },
             "cwd": "${workspaceFolder}"
         }
