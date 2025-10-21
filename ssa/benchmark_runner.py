@@ -143,7 +143,7 @@ def benchmark_model(
         if hasattr(scorer.model, 'config'):
             scorer.model.config.output_dir = str(output_dir)
 
-    agg, run_results, active_benchmark_scorers = simple_eval(
+    aggregates, run_results, active_benchmark_scorers = simple_eval(
         images_dir,
         scorers,
         rescoring=rescoring,
@@ -152,7 +152,7 @@ def benchmark_model(
     )
 
     log.info(f"run_results:\n{pformat(run_results)}")
-    log.info(f"aggregates:\n{pformat(agg)}")
+    log.info(f"aggregates:\n{pformat(aggregates)}")
 
     # Aggregate metrics from benchmark scorers (add additional metrics if needed)
     for scorer_key, benchmark_scorer in active_benchmark_scorers.items():
@@ -160,18 +160,18 @@ def benchmark_model(
             scorer_agg_metrics = benchmark_scorer.aggregate_metrics(
                 final_agg_dict={}
             )
-            agg.update(scorer_agg_metrics)
+            aggregates.update(scorer_agg_metrics)
         except Exception as e:
             log.error(
                 f"Error aggregating metrics for {scorer_key}: {e}", exc_info=True
             )
 
-    log.info(f"aggregates:\n{pformat(agg)}")
+    log.info(f"aggregates:\n{pformat(aggregates)}")
 
     # Save aggregated results
     final_agg_path = output_path / "aggregates.json"
     with open(final_agg_path, "w") as f:
-        json.dump(agg, f, indent=4, sort_keys=True)
+        json.dump(aggregates, f, indent=4, sort_keys=True)
 
     # Save run results
     final_run_result_path = output_path / "run_results.json"
@@ -352,7 +352,7 @@ def _load_and_parse_images(images_dir: str) -> List[tuple]:
     """
     from pathlib import Path
     from ssa.config import SUPPORTED_IMAGE_FORMATS
-    from ssa.prompts import Prompt, gen_prompt_id
+    from ssa.prompts import Prompt, generate_prompt_hash
 
     images_path = Path(images_dir)
     if not images_path.exists():
@@ -376,7 +376,7 @@ def _load_and_parse_images(images_dir: str) -> List[tuple]:
                 img_num = "0"
 
             # Create a Prompt object
-            prompt_id = gen_prompt_id(prompt_text)
+            prompt_id = generate_prompt_hash(prompt_text)
             prompt = Prompt(
                 id=f"{prompt_id}_{img_num}",
                 text=prompt_text,
@@ -592,17 +592,17 @@ def simple_eval_standardized(
     )
 
     # Step 4: Aggregate results
-    agg = {
+    aggregates = {
         "failed_gen": failed_gen,
         "failed_scoring_prompts": failed_scoring_prompts,
     }
 
     # Get standardized aggregated metrics
-    standardized_agg = runner.compute_final_aggregates()
-    agg.update(standardized_agg)
+    standardized_aggregates = runner.compute_final_aggregates()
+    aggregates.update(standardized_aggregates)
 
     return (
-        agg,
+        aggregates,
         run_results,
         {scorer.scorer_name: scorer for scorer in standardized_scorers},
     )

@@ -956,4 +956,4 @@ Respond with only a number between 0.0 and 1.0 (e.g., "0.8")."""
     @property
     def scorer_name(self) -> str:
         """Return the name of this scorer."""
-        return "od-attr-binding"
+        return "od_attr_binding"

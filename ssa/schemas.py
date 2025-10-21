@@ -340,7 +340,7 @@ class ScorerType(enum.Enum):
     SPATIAL = "spatial"
     NUMERACY = "numeracy"
     OD_ATTR_BINDING = (
-        "od-attr-binding"  # Object Detection-Based Attribute Binding (ODBAB)
+        "od_attr_binding"  # Object Detection-Based Attribute Binding (ODBAB)
     )
     ROUNDTRIP = "roundtrip"
     DSG_VLM = "dsg-vlm"

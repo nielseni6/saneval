@@ -5,7 +5,7 @@ Standardized scoring infrastructure package.
 # Scoring method constants
 SPATIAL = "spatial"
 NUMERACY = "numeracy"
-OD_ATTR_BINDING = "od-attr-binding"  # Object Detection-Based Attribute Binding (ODBAB)
+OD_ATTR_BINDING = "od_attr_binding"  # Object Detection-Based Attribute Binding (ODBAB)
 SCORING_METHODS = [
     SPATIAL,
     NUMERACY,

@@ -103,9 +103,9 @@ def prepare_artifact_path(name_prefix="temp", suffix="", run_id=0):
 
     # Return Path to that directory and file
     filename = f"{name_prefix}{suffix}"
-    res = Path(unique_dir) / filename
-    assert not res.exists()
-    return res
+    artifact_path = Path(unique_dir) / filename
+    assert not artifact_path.exists()
+    return artifact_path
 
 
 def create_temp_download_directory(
@@ -119,8 +119,8 @@ def create_temp_download_directory(
     random_str = f"-{short_randomstr(num=random_chars)}" if random_chars else ""
     unique_dir = base_dir / experiment_name / random_str / run_id
     os.makedirs(unique_dir)
-    res = Path(unique_dir)
-    return res
+    temp_dir_path = Path(unique_dir)
+    return temp_dir_path
 
 
 def reset_run_dir(name=None):
@@ -142,9 +142,9 @@ def get_temp_file(name_prefix="temp", suffix="", random_chars=DEFAULT_RANDOM_CHA
     run_dir = get_run_tempdir()
     random_str = f"-{short_randomstr(num=random_chars)}" if random_chars else ""
     filename = f"{name_prefix}{random_str}{suffix}"
-    res = Path(run_dir) / filename
-    assert not res.exists()
-    return res
+    temp_file_path = Path(run_dir) / filename
+    assert not temp_file_path.exists()
+    return temp_file_path
 
 
 def flatten_cfg(value):

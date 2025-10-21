@@ -78,8 +78,20 @@ def hash_prompts(prompts: list[Prompt]) -> str:
     return hasher.hexdigest()
 
 
-def gen_prompt_id(text: str, image: Optional[Any] = None) -> str:
-    """Canonical prompt id is just hash of prompt text + image into a uuid"""
+def generate_prompt_hash(text: str, image: Optional[Any] = None) -> str:
+    """
+    Generate a canonical prompt hash from text and optional image.
+
+    Creates a deterministic hash-based identifier for a prompt by combining
+    the text and image data. This is not a UUID but a content-based hash.
+
+    Args:
+        text: Prompt text to hash
+        image: Optional image data to include in hash
+
+    Returns:
+        String in format "prompt-{hash}" where hash is alphanumeric
+    """
     if image is not None:
         if not isinstance(image, str):
             im = str(image)
@@ -88,6 +100,22 @@ def gen_prompt_id(text: str, image: Optional[Any] = None) -> str:
     else:
         im = ""
     return f"prompt-{hash_str_to_alphanumeric(text+im, chars=22)}"
+
+
+# Deprecated alias for backwards compatibility
+def gen_prompt_id(text: str, image: Optional[Any] = None) -> str:
+    """
+    Deprecated: Use generate_prompt_hash() instead.
+
+    This function creates a hash, not a UUID despite the name.
+    """
+    import warnings
+    warnings.warn(
+        "gen_prompt_id() is deprecated, use generate_prompt_hash() instead",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    return generate_prompt_hash(text, image)
 
 
 class Corpus:
@@ -102,8 +130,8 @@ class Corpus:
         return f"<Corpus {self.name}:{self.hash}>"
 
     def config(self):
-        res = self._config
-        res.update(
+        config_dict = self._config
+        config_dict.update(
             {
                 "name": self.name,
                 "id": self.id,
@@ -113,7 +141,7 @@ class Corpus:
                 "image_count": self.image_count(),
             }
         )
-        return res
+        return config_dict
 
     def has_images(self) -> bool:
         """Check if any prompts in this corpus have associated images."""
@@ -149,7 +177,7 @@ MINI_CORPUS_PROMPTS = [
 
 MINI_CORPUS = Corpus(
     "mini-corpus",
-    [Prompt(gen_prompt_id(v), v) for v in MINI_CORPUS_PROMPTS],
+    [Prompt(generate_prompt_hash(v), v) for v in MINI_CORPUS_PROMPTS],
 )
 
 _inline = {
@@ -162,15 +190,15 @@ data_prompts = Path(__file__).parent.parent / "data" / "prompts"
 def to_prompts_list(prompts):
     prompt_kwargs = inspect.signature(Prompt.__init__).parameters.keys()
 
-    res = []
+    prompts_list = []
     for idx, prompt in enumerate(prompts):
         # Separate known prompt kwargs and put everything else into "extras"
         class_kwargs = {k: v for k, v in prompt.items() if k in prompt_kwargs}
         extra_kwargs = {k: v for k, v in prompt.items() if k not in prompt_kwargs}
         class_kwargs["extras"] = class_kwargs.get("extras", {})
         class_kwargs["extras"].update(extra_kwargs)
-        res.append(Prompt(**class_kwargs))
-    return res
+        prompts_list.append(Prompt(**class_kwargs))
+    return prompts_list
 
 
 VALID_CORPORA_SUFFIXES = {".yaml", ".yml", ".json"}
@@ -231,15 +259,15 @@ def load_corpus_file(key: str, data_file: Union[str, Path]) -> Corpus:
     if data_file_suffix in {"yaml", "yml"}:
         with open(data_file, "r") as file:
             data = yaml.load(file, Loader=yaml.FullLoader)
-            res = Corpus(key, to_prompts_list(data))
-            _inline[key] = res
-            return res
+            corpus = Corpus(key, to_prompts_list(data))
+            _inline[key] = corpus
+            return corpus
     elif data_file_suffix == "json":
         with open(data_file, "r") as file:
             data = json.loads(file)
-            res = Corpus(key, to_prompts_list(data))
-            _inline[key] = res
-            return res
+            corpus = Corpus(key, to_prompts_list(data))
+            _inline[key] = corpus
+            return corpus
     else:
         raise NotImplementedError(f"Unsupported corpus type: {data_file}")
 

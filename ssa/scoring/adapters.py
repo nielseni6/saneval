@@ -174,7 +174,7 @@ class OdAttrBindingScorerAdapter(ScorerInterface):
 
     @property
     def scorer_name(self) -> str:
-        return "od-attr-binding"
+        return "od_attr_binding"
 
     @property
     def supported_metrics(self) -> List[str]:
@@ -405,7 +405,7 @@ def create_scorer_adapter(
     adapter_map = {
         "spatial": SpatialScorerAdapter,
         "numeracy": NumeracyScorerAdapter,
-        "od-attr-binding": OdAttrBindingScorerAdapter,
+        "od_attr_binding": OdAttrBindingScorerAdapter,
     }
 
     adapter_class = adapter_map.get(scorer_key)
