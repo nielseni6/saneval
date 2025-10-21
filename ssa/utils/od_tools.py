@@ -3,6 +3,7 @@ import os
 import torch
 from tqdm import tqdm
 
+from ssa.utils.base import DEFAULT_OUTPUT_BASE
 from ssa.utils.logging import get_log
 
 log = get_log(__file__)
@@ -122,8 +123,8 @@ def plot_bboxes(
     # Determine save path
     if save_path is None:
         # Default fallback for backward compatibility
-        debug_save_path = f"results/unknown/{save_name}"
-        os.makedirs("results/unknown", exist_ok=True)
+        debug_save_path = str(DEFAULT_OUTPUT_BASE / save_name)
+        os.makedirs(DEFAULT_OUTPUT_BASE, exist_ok=True)
     else:
         # Use provided save_path (typically from scorer config)
         debug_save_path = os.path.join(save_path, save_name)

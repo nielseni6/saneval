@@ -18,6 +18,7 @@ from ssa.od import (
     ObjectDetectionModel,
 )
 from ssa.scorers.scorer_base import BaseScorer, BaseScorerConfig
+from ssa.utils.base import DEFAULT_OUTPUT_BASE
 from ssa.utils.logging import get_log
 from ssa.utils.nlp_tools import ObjectAttributeExtractor
 from ssa.utils.od_tools import (
@@ -269,23 +270,11 @@ class SpatialNumeracyBase(BaseScorer):
             # Determine save path for debug images
             if self.config.output_dir:
                 # Use output_dir/bbox_imgs/ when running via benchmark
-                base_path = Path(self.config.output_dir) / "bbox_imgs"
-                debug_save_path = (
-                    base_path
-                    / f"{self.get_scorer_name().lower()}"
-                    / f"{self.config.od_model.replace('/', '')}"
-                    / f"{self.config.pred_classes}"
-                    / f"run-{self.current_run_time}"
-                )
+                debug_save_path = Path(self.config.output_dir) / "bbox_imgs"
             else:
                 # Fallback to legacy path for backward compatibility
-                debug_save_path = Path(
-                    f"results/unknown/"
-                    f"{self.get_scorer_name().lower()}/"
-                    f"{self.config.od_model.replace('/', '')}/"
-                    f"{self.config.pred_classes}/"
-                    f"run-{self.current_run_time}"
-                )
+                debug_save_path = DEFAULT_OUTPUT_BASE
+
 
             debug_img_path = plot_bboxes(
                 image_path,

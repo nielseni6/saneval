@@ -10,6 +10,7 @@ from ssa.od import (
     ObjectDetectionModel,
 )
 from ssa.scorers.scorer_base import BaseScorer, BaseScorerConfig
+from ssa.utils.base import DEFAULT_OUTPUT_BASE
 from ssa.utils.logging import get_log
 from ssa.utils.nlp_tools import ObjectAttributeExtractor
 from ssa.utils.od_tools import (
@@ -907,13 +908,22 @@ Respond with only a number between 0.0 and 1.0 (e.g., "0.8")."""
 
             targets_str = " | ".join(target_details)
 
+            # Determine save path for debug images
+            if self.config.output_dir:
+                # Use output_dir/bbox_imgs/ when running via benchmark
+                from pathlib import Path
+                debug_save_path = Path(self.config.output_dir) / "bbox_imgs"
+            else:
+                # Fallback to default path for backward compatibility
+                debug_save_path = DEFAULT_OUTPUT_BASE
+
             debug_img_path = plot_bboxes(
                 image_path,
                 [d["name"] for d in target_detections],
                 [d["bbox"] for d in target_detections],
                 [d["confidence"] for d in target_detections],
                 title=f'Prompt: "{prompt}" | {targets_str} | Final: {final_score:.2f}',
-                save_path=f"data/debug/scorers/od-attr-bind/",
+                save_path=str(debug_save_path),
             )
             log.debug(f"Debug image saved to: {debug_img_path}")
 
