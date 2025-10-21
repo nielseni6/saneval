@@ -1,3 +1,14 @@
+"""
+Core utility functions for SANEval.
+
+This module provides foundational utilities including:
+- Random string generation and hashing
+- Temporary directory and file path management
+- Configuration flattening
+- Unique identifier generation
+
+Note: This module has no internal SSA dependencies to avoid circular imports.
+"""
 import argparse
 import base64
 import os

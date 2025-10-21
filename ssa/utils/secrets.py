@@ -1,6 +1,9 @@
 """
 Secrets management utilities.
-Stub implementation - needs to be replaced with actual secret management.
+
+Provides a simple interface for retrieving secrets from environment variables.
+For production use, consider integrating with dedicated secret management
+services like AWS Secrets Manager or HashiCorp Vault.
 """
 import os
 

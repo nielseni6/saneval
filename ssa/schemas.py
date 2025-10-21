@@ -1,3 +1,10 @@
+"""
+Pydantic models and schemas for SANEval benchmarking.
+
+This module defines data validation schemas, enums, and response models
+used throughout the benchmarking system for structured outputs from VLMs,
+evaluation criteria, and scoring metadata.
+"""
 import enum
 from typing import List
 

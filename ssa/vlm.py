@@ -1,3 +1,14 @@
+"""
+VLM (Vision-Language Model) and LLM abstractions.
+
+This module provides unified interfaces for interacting with different
+vision-language models and language models across multiple providers
+(Bedrock, Gemini, OpenAI).
+
+Main classes:
+    - Vlm: Vision-language model interface for image-text tasks
+    - Llm: Language model interface for text-only tasks
+"""
 from typing import Any, Dict, Optional, Union
 
 from PIL import Image

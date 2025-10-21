@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-# See docs in docs/BENCHMARKS.md for usage
+"""
+Command-line interface for running SANEval benchmarks.
+
+This script provides the main entry point for running benchmarks on
+directories of images using various scoring methods. See docs/BENCHMARKS.md
+for detailed usage documentation.
+"""
 import argparse
 
 from ssa.benchmark_runner import (

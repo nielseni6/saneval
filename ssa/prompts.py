@@ -12,8 +12,6 @@ import yaml
 # Type alias for extras dictionary - allows common JSON-serializable types
 ExtrasType = Dict[str, Union[str, int, float, bool, List[Any], Dict[str, Any]]]
 
-## TODO: replace s3 utils with local image loading from a specified path
-# from ssa.aws.s3 import get_image_from_s3, get_s3_cached, list_s3, parse_s3_uri
 from ssa.utils.base import DEFAULT_RANDOM_CHARS, hash_str_to_alphanumeric
 from ssa.utils.logging import get_log
 
