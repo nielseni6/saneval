@@ -27,6 +27,49 @@
                 "--scoring",
                 "od-attr-binding"
             ],
+            "env": {
+                "GOOGLE_API_KEY": "your-key"
+            },
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Benchmark: Numeracy",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/ssa/benchmark.py",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/saneval_env/bin/python",
+            "args": [
+                "--images-dir",
+                "images/samples/numeracy",
+                "--output-dir",
+                "results/numeracy",
+                "--scoring",
+                "numeracy"
+            ],
+            "env": {
+                "GOOGLE_API_KEY": "your-key"
+            },
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Benchmark: Spatial",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/ssa/benchmark.py",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/saneval_env/bin/python",
+            "args": [
+                "--images-dir",
+                "images/samples/spatial",
+                "--output-dir",
+                "results/spatial",
+                "--scoring",
+                "spatial"
+            ],
+            "env": {
+                "GOOGLE_API_KEY": "your-key"
+            },
             "cwd": "${workspaceFolder}"
         }
     ]

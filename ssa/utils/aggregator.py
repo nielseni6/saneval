@@ -1,6 +1,6 @@
 import json
 from statistics import mean, median
-from typing import List
+from typing import List, Optional
 
 import mlflow.artifacts
 import pandas as pd
@@ -9,8 +9,12 @@ from ssa.utils.base import create_temp_download_directory, get_temp_file
 from ssa.utils.logging import log
 from ssa.utils.moe_sample_size import needed_samples, standard_dev
 
+# Constants for statistical calculations
+CONFIDENCE_INTERVAL_MULTIPLIER = 1.96  # 95% confidence interval (z-score)
+STRICT_THRESHOLD = 1.0  # Threshold for strict pass/fail
 
-def percentile(sorted_nums, perc):
+
+def percentile(sorted_nums: List[float], perc: float) -> Optional[float]:
     if not sorted_nums:
         return None
     n = len(sorted_nums)
@@ -18,41 +22,32 @@ def percentile(sorted_nums, perc):
     return sorted_nums[perc_index]
 
 
-def error_margin(numbers):
-    n = len(numbers)
-    e_margin = 1.96 * (
-        standard_dev(numbers) / (n**0.5)
-    )  # 1.96 for 95% confidence interval
-    return e_margin
-
-
 class Aggregator:
     """Very simple aggregator"""
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         self.name = name
-        self.data = []
+        self.data: List[float] = []
 
-    def add_datum(self, datum):
+    def add_datum(self, datum: float) -> None:
         self.data.append(datum)
 
-    def add_data(self, data: list):
+    def add_data(self, data: List[float]) -> None:
         self.data.extend(data)
 
-    def get_mean(self):
+    def get_mean(self) -> float:
         return mean(self.data)
 
-    def get_sum(self):
+    def get_sum(self) -> float:
         return sum(self.data)
 
-    def get_count(self):
+    def get_count(self) -> int:
         return len(self.data)
 
-    def get_aggregates(self, keys=None, with_strict=False, prefix=None):
+    def get_aggregates(self, keys: Optional[List[str]] = None, with_strict: bool = False, prefix: Optional[str] = None) -> dict:
 
         log.debug(f"get_aggregates for {self.name!r}, count={len(self.data)}.")
 
-        # Avoiding numpy import for now
         numbers = self.data
         sorted_nums = sorted(numbers)
 
@@ -79,18 +74,16 @@ class Aggregator:
         # compute once upfront
         m = mean(numbers)
         std = standard_dev(numbers)
-        err = 1.96 * (std / (len(numbers) ** 0.5))
+        err = CONFIDENCE_INTERVAL_MULTIPLIER * (std / (len(numbers) ** 0.5))
 
         res = {
             f"{current_prefix}.{k}": v
             for k, v in {
-                # "min": min(numbers),
                 "p10": percentile(sorted_nums, 0.1),
-                "mean": mean(numbers),
+                "mean": m,  # use cached mean
                 "median": median(numbers),
                 "p90": percentile(sorted_nums, 0.9),
                 "count": len(numbers),
-                # "max": max(numbers),
                 "stdev": std,  # use cached std
                 "ci95_lower": m - err,  # use cached mean and error margin
                 "ci95_upper": m + err,
@@ -99,8 +92,8 @@ class Aggregator:
         }
 
         if with_strict:
-            # strict is percentage that were 1.0
-            res[f"{current_prefix}.strict"] = float(numbers.count(1.0)) / len(numbers)
+            # strict is percentage that were exactly at the threshold
+            res[f"{current_prefix}.strict"] = float(numbers.count(STRICT_THRESHOLD)) / len(numbers)
 
         return res
 
@@ -124,9 +117,7 @@ def _combine_results_json(experiment_name: str, status_info: pd.DataFrame) -> st
 
 def _load_task_results(experiment_name: str, run_id: str) -> List:
     """Load results from a specific task run."""
-    # Note: Function signature expects int but MLflow run_ids are strings
-    # Path concatenation works fine with strings
-    temp_download_path = create_temp_download_directory(experiment_name, run_id)  # type: ignore
+    temp_download_path = create_temp_download_directory(experiment_name, run_id)
 
     try:
         mlflow.artifacts.download_artifacts(
