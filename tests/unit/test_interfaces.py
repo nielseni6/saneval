@@ -1,7 +1,5 @@
 """Unit tests for ssa.interfaces module."""
 
-import numpy as np
-import pytest
 from PIL import Image
 
 from ssa.interfaces import ImageInfo
