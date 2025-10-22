@@ -34,3 +34,8 @@ cog>=0.8.0  # For Path type handling
 # Optional: For specific scorers
 # transformers>=4.30.0  # If using transformer-based models
 # opencv-python>=4.8.0  # If using OpenCV
+
+# Testing dependencies
+pytest>=7.4.0,<8.0.0
+pytest-cov>=4.1.0,<5.0.0
+pytest-mock>=3.11.0,<4.0.0

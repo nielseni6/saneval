@@ -1,0 +1,25 @@
+# Test prompt corpus for SANEval unit tests
+- id: test-prompt-001
+  text: "A red ball next to a blue cube on a white surface"
+  categories: ["spatial", "color"]
+  source: "test"
+
+- id: test-prompt-002
+  text: "Three yellow stars arranged in a triangle"
+  categories: ["numeracy", "shape"]
+  source: "test"
+
+- id: test-prompt-003
+  text: "A large red apple and a small green apple"
+  categories: ["attribute_binding", "size", "color"]
+  source: "test"
+
+- id: test-prompt-004
+  text: "A dog sitting to the left of a cat"
+  categories: ["spatial", "relation"]
+  source: "test"
+
+- id: test-prompt-005
+  text: "Five blue circles in a horizontal row"
+  categories: ["numeracy", "color", "arrangement"]
+  source: "test"
