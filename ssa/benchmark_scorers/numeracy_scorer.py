@@ -4,11 +4,6 @@ Numeracy Benchmark Scorer Implementation.
 
 from typing import Any, Dict, List, Optional
 
-try:
-    import mlflow
-except ImportError:
-    mlflow = None  # Handle environments without MLflow
-
 from ssa.benchmark_scorers.spatial_numeracy_benchmark_base import (
     SpatialNumeracyBenchmarkBase,
 )

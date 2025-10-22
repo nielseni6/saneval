@@ -8,16 +8,10 @@ containing all shared functionality that was previously duplicated between the t
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, cast
 
-try:
-    import mlflow
-except ImportError:
-    mlflow = None  # Handle environments without MLflow
-
 from ssa.interfaces import BenchmarkScorer, ImageType
 from ssa.prompts import Corpus, Prompt
 from ssa.scorers.model_scorer import ModelScorer
 from ssa.utils.logging import log
-from ssa.utils.metrics import flatten_and_sanitize_metrics
 
 
 class SpatialNumeracyBenchmarkBase(BenchmarkScorer, ABC):
@@ -200,15 +194,5 @@ class SpatialNumeracyBenchmarkBase(BenchmarkScorer, ABC):
             and self.aggregators[aggregator_key].get_count() > 0
         ):
             final_agg_dict.update(self.aggregators[aggregator_key].get_aggregates())
-
-        # Log aggregated metrics to MLflow
-        if mlflow is not None:
-            try:
-                sanitized_metrics = flatten_and_sanitize_metrics(final_agg_dict)
-                mlflow.log_metrics(sanitized_metrics)
-            except Exception as e:
-                # In test environments or when MLflow/AWS isn't configured,
-                # we should continue without logging rather than failing
-                log.warning(f"Could not log metrics to MLflow: {e}")
 
         return final_agg_dict

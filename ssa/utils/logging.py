@@ -282,7 +282,6 @@ class SuppressLogs:
         # Suppress common noisy loggers
         logger_names = [
             "ssa.s3",
-            "ssa.mlflow",
             "botocore",
             "urllib3",
             "requests",

@@ -3,7 +3,7 @@ from typing import Dict
 
 def flatten_and_sanitize_metrics(metrics: Dict) -> Dict:
     """
-    Flattens a nested dictionary of metrics and sanitizes the values for MLflow logging.
+    Flattens a nested dictionary of metrics and sanitizes the values for metrics logging.
     """
     flattened_metrics = {
         f"{key}.{subkey}": subval
