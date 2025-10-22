@@ -8,6 +8,10 @@
 #  - yoloworld    : YOLOWorld for world-centric object detection
 #  - yoloe        : YOLOE for everything detection
 
+import json
+import logging
+import os
+
 YOLOV11 = "yolo/v11"
 YOLOV12 = "yolo/v12"
 YOLOWORLD = "yolo/world"
@@ -20,10 +24,6 @@ DETECTION_MODELS = [
     YOLOEVERYTHING,
 ]
 DEFAULT_OD_VERSION = YOLOEVERYTHING
-
-import json
-import logging
-import os
 
 # Global dictionary mapping model types to their import functions
 MODEL_TYPE_IMPORTS = {

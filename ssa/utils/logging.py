@@ -67,7 +67,7 @@ def build_formatter(plain, color):
             "%(log_color)s" + msg_format,
             log_colors={
                 "DEBUG": "blue",
-                #'INFO': 'white',  # let info default console
+                # 'INFO': 'white',  # let info default console
                 "WARNING": "yellow",
                 "ERROR": "red",
                 "CRITICAL": "red,bg_white",
@@ -155,7 +155,7 @@ def set_log_format():
             "%(log_color)s" + msg_format,
             log_colors={
                 "DEBUG": "blue",
-                #'INFO': 'white',  # let info default console
+                # 'INFO': 'white',  # let info default console
                 "WARNING": "yellow",
                 "ERROR": "red",
                 "CRITICAL": "red,bg_white",

@@ -1,7 +1,5 @@
 """Unit tests for ssa.utils.base module."""
 
-import pytest
-
 from ssa.utils.base import (
     DEFAULT_RANDOM_CHARS,
     hash_str_to_alphanumeric,

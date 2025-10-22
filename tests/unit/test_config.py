@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from ssa.config import DEFAULT_OUTPUT_BASE, SUPPORTED_IMAGE_FORMATS
 
 

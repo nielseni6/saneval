@@ -5,7 +5,6 @@ This module provides the base class for spatial and numeracy scorers, containing
 all shared functionality that was previously duplicated between the two scorers.
 """
 
-import os
 import time
 from abc import abstractmethod
 from pathlib import Path
@@ -19,7 +18,6 @@ from ssa.utils.base import DEFAULT_OUTPUT_BASE
 from ssa.utils.logging import get_log
 from ssa.utils.nlp_tools import ObjectAttributeExtractor
 from ssa.utils.od_tools import filter_objects, plot_bboxes
-from ssa.utils.secrets import get_secret
 from ssa.vlm import DEFAULT_LLM_VERSION, Llm
 
 log = get_log(__file__)

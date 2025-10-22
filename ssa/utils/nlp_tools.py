@@ -111,7 +111,7 @@ class ObjectAttributeExtractor:
         Returns:
             Dict mapping object names to their list of attributes
         """
-        llm_prompt = f"""Extract objects and their attributes from the following text prompt. 
+        llm_prompt = f"""Extract objects and their attributes from the following text prompt.
 
 Text Prompt: "{prompt}"
 
@@ -200,7 +200,7 @@ For example:
 
 Convert written numbers to integers:
 - "one"/"a"/"single" = 1
-- "two"/"couple" = 2  
+- "two"/"couple" = 2
 - "three" = 3
 - "four" = 4
 - "half a dozen" = 6

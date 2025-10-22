@@ -1,10 +1,8 @@
 import json
-from typing import Optional
 
 from google import genai
 from google.api_core import exceptions as google_exceptions
 from google.genai import types as genaitypes
-from PIL import Image
 from pydantic import BaseModel
 
 from ssa.schemas import validate_response_against_schema

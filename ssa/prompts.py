@@ -9,11 +9,11 @@ from typing import Any, Dict, List, Optional, Union
 
 import yaml
 
-# Type alias for extras dictionary - allows common JSON-serializable types
-ExtrasType = Dict[str, Union[str, int, float, bool, List[Any], Dict[str, Any]]]
-
 from ssa.utils.base import DEFAULT_RANDOM_CHARS, hash_str_to_alphanumeric
 from ssa.utils.logging import get_log
+
+# Type alias for extras dictionary - allows common JSON-serializable types
+ExtrasType = Dict[str, Union[str, int, float, bool, List[Any], Dict[str, Any]]]
 
 log = get_log(__file__)
 

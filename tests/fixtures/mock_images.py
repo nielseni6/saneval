@@ -1,7 +1,7 @@
 """Helper functions for creating mock test images."""
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 
 def create_simple_test_image(width=100, height=100, color=(255, 0, 0)):
@@ -117,7 +117,7 @@ def create_test_image_with_text(
         text_height = bbox[3] - bbox[1]
         position = ((width - text_width) // 2, (height - text_height) // 2)
         draw.text(position, text, fill=text_color)
-    except:
+    except Exception:
         # Fallback if text measurement fails
         draw.text((width // 4, height // 3), text, fill=text_color)
 

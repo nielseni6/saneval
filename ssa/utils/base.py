@@ -23,15 +23,15 @@ from typing import Optional
 
 import pytz
 
+# Import centralized config for default output paths
+from ssa.config import DEFAULT_OUTPUT_BASE as _DEFAULT_OUTPUT_BASE_PATH
+
 # Do not add any SSA Dependencies here!!
 
 alphanumeric_characters = string.ascii_letters + string.digits
 
 # Chosen b/c odds of collision in 100mm samples is 0.000155%
 DEFAULT_RANDOM_CHARS = 12
-
-# Import centralized config for default output paths
-from ssa.config import DEFAULT_OUTPUT_BASE as _DEFAULT_OUTPUT_BASE_PATH
 
 # Default base directory for debug outputs when output_dir is not configured
 # Creates a timestamped run directory under the centralized base path

@@ -13,17 +13,19 @@ Usage:
 """
 
 import json
-import time
-from pathlib import Path
 from pprint import pformat
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Union
 
 from ssa.scorers.model_scorer import ModelScorer
-from ssa.utils.aggregator import Aggregator
-from ssa.utils.base import prepare_artifact_path, reset_run_dir, unique_id
+from ssa.utils.base import unique_id
 from ssa.utils.logging import log
 from ssa.utils.reasoning_trace import ReasoningTraceCollector, default_json_handler
 from ssa.utils.system import default_context, get_subconfigs
+
+if TYPE_CHECKING:
+    from ssa.prompts import Prompt
+    from ssa.scoring.interfaces import ScorerInterface
+    from ssa.scoring.runner import StandardizedBenchmarkRunner
 
 
 def resolve_benchmark_config(scoring_keys, bench_config_overrides):
@@ -182,7 +184,7 @@ def benchmark_model(
                 default=default_json_handler,
             )
 
-    log.info(f"Results saved to:")
+    log.info("Results saved to:")
     log.info(f"  - {final_agg_path}")
     log.info(f"  - {final_run_result_path}")
     if reasoning_traces:
@@ -262,15 +264,6 @@ def _process_prompt_result(
         "prompt": prompt.to_dict(),
         "prompt_id": prompt.id,
         "prompt_text": prompt.text,
-    }
-
-    # Calculate running metrics for this step
-    running_metrics = {
-        "running/step": pidx,
-        "running/percent_done": (
-            float(pidx + 1) / context.total_prompts if context.total_prompts > 0 else 0
-        ),
-        "running/duration": (time.time() - context.job_t0),
     }
 
     if error_message:
@@ -435,8 +428,6 @@ def _process_image_prompts(
     Returns:
         Tuple of (run_results, failed_gen_count, failed_scoring_count)
     """
-    from pathlib import Path
-
     from PIL import Image as PILImage
 
     from ssa.interfaces import ImageInfo
@@ -446,7 +437,6 @@ def _process_image_prompts(
     failed_gen = 0
     failed_scoring_prompts = 0
     total_prompts = len(image_prompt_pairs)
-    job_t0 = time.time()
 
     for pidx, (img_file, prompt) in enumerate(image_prompt_pairs):
         log.info(f"Image {pidx + 1}/{total_prompts} id={prompt.id} : {prompt.text}")

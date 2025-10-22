@@ -1,8 +1,6 @@
 """Unit tests for ssa.prompts module."""
 
-import pytest
-
-from ssa.prompts import Corpus, Prompt, generate_prompt_hash, hash_prompts
+from ssa.prompts import Corpus, Prompt, generate_prompt_hash
 
 
 class TestPromptHashing:
