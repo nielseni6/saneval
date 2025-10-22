@@ -85,4 +85,7 @@ class TestPromptParsing:
                 assert hasattr(prompt, "id")
                 assert hasattr(prompt, "text")
                 assert hasattr(prompt, "source")
-                assert prompt.source == "filename"
+                # Verify source is populated with actual filename, not the literal string "filename"
+                assert prompt.source is not None
+                assert prompt.source != "filename"
+                assert isinstance(prompt.source, str) and len(prompt.source) > 0

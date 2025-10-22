@@ -362,7 +362,7 @@ def _load_and_parse_images(images_dir: str) -> List[tuple]:
             # Create a Prompt object
             prompt_id = generate_prompt_hash(prompt_text)
             prompt = Prompt(
-                id=f"{prompt_id}_{img_num}", text=prompt_text, source="filename"
+                id=f"{prompt_id}_{img_num}", text=prompt_text, source=img_file.name
             )
 
             image_prompt_pairs.append((img_file, prompt))
