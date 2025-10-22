@@ -2,16 +2,15 @@
 Setup script for SSA (Standardized Scoring Architecture)
 """
 
-from setuptools import setup, find_packages
 from pathlib import Path
+
+from setuptools import find_packages, setup
 
 # Read requirements from requirements.txt
 requirements_path = Path(__file__).parent / "requirements.txt"
 with open(requirements_path) as f:
     requirements = [
-        line.strip()
-        for line in f
-        if line.strip() and not line.startswith('#')
+        line.strip() for line in f if line.strip() and not line.startswith("#")
     ]
 
 # Read long description from README
@@ -40,8 +39,8 @@ setup(
         "scoring",
     ],
     entry_points={
-        'console_scripts': [
-            'ssa-benchmark=ssa.benchmark:main',
+        "console_scripts": [
+            "ssa-benchmark=ssa.benchmark:main",
         ],
     },
     classifiers=[
