@@ -715,7 +715,6 @@ def init_global_cache(capacity: int = 1000, ttl: float = 3600) -> PromptCache:
 
 def clear_global_cache() -> None:
     """Clear the global prompt cache."""
-    global _global_cache
     with _cache_lock:
         if _global_cache is not None:
             _global_cache.clear()

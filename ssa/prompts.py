@@ -283,7 +283,6 @@ def get_corpus(key: str, validate_only: bool = False) -> Union[bool, Corpus]:
         If validate_only=True, returns True if valid
         Otherwise, returns the Corpus object
     """
-    global _inline
     if key in _inline:
         if validate_only:
             return True

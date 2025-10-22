@@ -139,7 +139,6 @@ class LogFileHandler:
 
 
 def set_log_level(level):
-    global ch
     ch.setLevel(level)
 
 
@@ -148,7 +147,6 @@ def set_verbose(verbose: bool):
 
 
 def set_log_format():
-    global plain, color, ch
     msg_format = plain_format if plain else verbose_format
     if color:
         formatter = colorlog.ColoredFormatter(
@@ -167,18 +165,17 @@ def set_log_format():
 
 
 def rebuild_formatter():
-    global ch, plain, clor
     ch.setFormatter(plain, color)
 
 
 def set_plain(val: bool = True):
-    global plain, ch
+    global plain
     plain = val
     rebuild_formatter()
 
 
 def set_color(val: bool = True):
-    global color, ch
+    global color
     color = val
     rebuild_formatter()
 
