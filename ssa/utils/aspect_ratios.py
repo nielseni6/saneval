@@ -160,22 +160,6 @@ def get_provider_dimensions_legacy(
             "9:16": (768, 1408),
             "16:9": (1408, 768),
         },
-        # OpenAI models - based on OPENAI_ASPECT_RATIO_TO_SIZE in openai.py
-        "openai/gpt-4o": {
-            "1:1": (1024, 1024),
-            "3:2": (1536, 1024),
-            "2:3": (1024, 1536),
-        },
-        "openai/gpt-4.5-preview": {
-            "1:1": (1024, 1024),
-            "3:2": (1536, 1024),
-            "2:3": (1024, 1536),
-        },
-        "openai/dall-e-3": {
-            "1:1": (1024, 1024),
-            "3:2": (1536, 1024),
-            "2:3": (1024, 1536),
-        },
     }
 
     # Get provider-specific dimensions
@@ -684,37 +668,6 @@ MODEL_ASPECT_RATIOS: Dict[
             "3:4": (896, 1280),
             "16:9": (1408, 768),
             "9:16": (768, 1408),
-        },
-        "control_method": "predefined_presets",
-    },
-    # OpenAI models
-    "openai/gpt-4o": {
-        "supported_aspect_ratios": ["1:1", "3:2", "2:3"],
-        "supported_resolutions": [(1024, 1024), (1536, 1024), (1024, 1536)],
-        "aspect_ratio_dimensions": {
-            "1:1": (1024, 1024),
-            "3:2": (1536, 1024),
-            "2:3": (1024, 1536),
-        },
-        "control_method": "predefined_presets",
-    },
-    "openai/gpt-4.5-preview": {
-        "supported_aspect_ratios": ["1:1", "3:2", "2:3"],
-        "supported_resolutions": [(1024, 1024), (1536, 1024), (1024, 1536)],
-        "aspect_ratio_dimensions": {
-            "1:1": (1024, 1024),
-            "3:2": (1536, 1024),
-            "2:3": (1024, 1536),
-        },
-        "control_method": "predefined_presets",
-    },
-    "openai/dall-e-3": {
-        "supported_aspect_ratios": ["1:1", "3:2", "2:3"],
-        "supported_resolutions": [(1024, 1024), (1536, 1024), (1024, 1536)],
-        "aspect_ratio_dimensions": {
-            "1:1": (1024, 1024),
-            "3:2": (1536, 1024),
-            "2:3": (1024, 1536),
         },
         "control_method": "predefined_presets",
     },

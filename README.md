@@ -31,9 +31,9 @@ This will automatically install all required dependencies from requirements.txt.
 
 ## Authentication Setup
 
-SANEval supports multiple VLM/LLM providers. Choose and configure the provider(s) you need:
+SANEval uses Google Gemini as its VLM/LLM provider.
 
-### Google Gemini (Default)
+### Google Gemini
 
 **Option 1: Application Default Credentials (Recommended)**
 ```bash
@@ -44,30 +44,6 @@ gcloud auth application-default login
 ```bash
 export GOOGLE_API_KEY="your-api-key"
 ```
-
-### OpenAI
-
-Set your API key as an environment variable:
-```bash
-export OPENAI_API_KEY="your-api-key"
-```
-
-### AWS Bedrock (Claude)
-
-**Option 1: AWS CLI Configuration (Recommended)**
-```bash
-aws configure
-```
-
-**Option 2: Environment Variables**
-```bash
-export AWS_ACCESS_KEY_ID="your-access-key"
-export AWS_SECRET_ACCESS_KEY="your-secret-key"
-export AWS_DEFAULT_REGION="us-east-1"  # or your preferred region
-```
-
-**Option 3: IAM Role**
-- When running on AWS infrastructure (EC2, ECS, Lambda), IAM roles are automatically detected
 
 ## Usage
 
@@ -106,9 +82,7 @@ The debug configuration automatically uses the `saneval_env` Python interpreter.
 ssa/
 ├── benchmark.py          # Main benchmark runner
 ├── providers/            # VLM/LLM provider implementations
-│   ├── gemini.py        # Google Gemini
-│   ├── openai.py        # OpenAI GPT
-│   └── bedrock.py       # AWS Bedrock (Claude)
+│   └── gemini.py        # Google Gemini
 ├── scorers/             # Scoring method implementations
 ├── utils/               # Utility functions
 └── data/                # Data files (e.g., object categories)

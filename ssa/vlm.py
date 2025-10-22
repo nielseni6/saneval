@@ -3,7 +3,7 @@ VLM (Vision-Language Model) and LLM abstractions.
 
 This module provides unified interfaces for interacting with different
 vision-language models and language models across multiple providers
-(Bedrock, Gemini, OpenAI).
+(Gemini).
 
 Main classes:
     - Vlm: Vision-language model interface for image-text tasks
@@ -15,19 +15,14 @@ from typing import Any, Dict, Optional, Union
 from PIL import Image
 
 from ssa.caching import get_cache_statistics, get_global_cache, setup_caching
-from ssa.providers.bedrock import SUPPORTED_VERSIONS as BEDROCK_SUPPORTED_VERSIONS
-from ssa.providers.bedrock import BedrockProvider
 from ssa.providers.gemini import GEMINI_2_5_FLASH
 from ssa.providers.gemini import SUPPORTED_VERSIONS as GEMINI_SUPPORTED_VERSIONS
 from ssa.providers.gemini import GeminiProvider
-from ssa.providers.openai import OPENAI_SUPPORTED_VERSIONS, OpenAIProvider
 from ssa.utils.base import flatten_cfg
 from ssa.utils.logging import get_log
 
 VLM_VERSIONS = {}
-VLM_VERSIONS.update({k: BedrockProvider for k in BEDROCK_SUPPORTED_VERSIONS})
 VLM_VERSIONS.update({k: GeminiProvider for k in GEMINI_SUPPORTED_VERSIONS})
-VLM_VERSIONS.update({k: OpenAIProvider for k in OPENAI_SUPPORTED_VERSIONS})
 
 DEFAULT_VLM_VERSION = GEMINI_2_5_FLASH
 DEFAULT_LLM_VERSION = GEMINI_2_5_FLASH
