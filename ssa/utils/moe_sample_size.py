@@ -2,6 +2,7 @@
 Margin of Error (MOE) and sample size calculation utilities.
 Statistical utilities for determining sample sizes needed for confidence intervals.
 """
+
 import math
 from typing import List, Tuple
 
@@ -24,7 +25,9 @@ def standard_dev(numbers: List[float]) -> float:
     return math.sqrt(variance)
 
 
-def needed_samples(numbers: List[float], target_moe: float = 0.05, confidence_level: float = 0.95) -> Tuple[float, int]:
+def needed_samples(
+    numbers: List[float], target_moe: float = 0.05, confidence_level: float = 0.95
+) -> Tuple[float, int]:
     """
     Calculate margin of error and additional samples needed.
 

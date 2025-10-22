@@ -1,7 +1,10 @@
 """Integration tests for benchmark workflow."""
-import pytest
-from pathlib import Path
+
 import tempfile
+from pathlib import Path
+
+import pytest
+
 from ssa.benchmark_runner import _load_and_parse_images
 
 
@@ -80,7 +83,7 @@ class TestPromptParsing:
             if pairs:
                 _, prompt = pairs[0]
                 # Prompt should have required attributes
-                assert hasattr(prompt, 'id')
-                assert hasattr(prompt, 'text')
-                assert hasattr(prompt, 'source')
+                assert hasattr(prompt, "id")
+                assert hasattr(prompt, "text")
+                assert hasattr(prompt, "source")
                 assert prompt.source == "filename"

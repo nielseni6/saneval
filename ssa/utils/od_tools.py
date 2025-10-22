@@ -168,9 +168,7 @@ def calculate_iou(bbox1, bbox2):
 def get_data(image_path, transform):
     # Import here to avoid circular import issues
     from ssa.thirdparty.saneval.experts.obj_detection.generate_dataset import (
-        Dataset,
-        collate_fn,
-    )
+        Dataset, collate_fn)
 
     batch_size = 1
     dataset = Dataset(image_path, transform, single_image=True)

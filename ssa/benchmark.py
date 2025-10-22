@@ -8,23 +8,10 @@ for detailed usage documentation.
 """
 import argparse
 
-from ssa.benchmark_runner import (
-    benchmark_model,
-    resolve_benchmark_config,
-)
-from ssa.scoring import (
-    SPATIAL,
-    SCORING_METHODS,
-)
-from ssa.utils.logging import (
-    add_log_args,
-    heading,
-    log,
-    process_log_args,
-)
-from ssa.utils.system import (
-    parse_config_arg,
-)
+from ssa.benchmark_runner import benchmark_model, resolve_benchmark_config
+from ssa.scoring import SCORING_METHODS, SPATIAL
+from ssa.utils.logging import add_log_args, heading, log, process_log_args
+from ssa.utils.system import parse_config_arg
 
 
 def run_benchmarks(
@@ -56,6 +43,7 @@ def run_benchmarks(
     )
 
     log.info("Success!")
+
 
 def main():
     """Main entry point for the benchmark script."""

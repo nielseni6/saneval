@@ -39,7 +39,12 @@ class Aggregator:
     def get_count(self) -> int:
         return len(self.data)
 
-    def get_aggregates(self, keys: Optional[List[str]] = None, with_strict: bool = False, prefix: Optional[str] = None) -> dict:
+    def get_aggregates(
+        self,
+        keys: Optional[List[str]] = None,
+        with_strict: bool = False,
+        prefix: Optional[str] = None,
+    ) -> dict:
 
         log.debug(f"get_aggregates for {self.name!r}, count={len(self.data)}.")
 
@@ -88,6 +93,8 @@ class Aggregator:
 
         if with_strict:
             # strict is percentage that were exactly at the threshold
-            res[f"{current_prefix}.strict"] = float(numbers.count(STRICT_THRESHOLD)) / len(numbers)
+            res[f"{current_prefix}.strict"] = float(
+                numbers.count(STRICT_THRESHOLD)
+            ) / len(numbers)
 
         return res

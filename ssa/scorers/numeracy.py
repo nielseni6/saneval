@@ -10,10 +10,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 
-from ssa.od import (
-    ObjectDetectionModel,
-)
-from ssa.scorers.spatial_numeracy_base import SpatialNumeracyBase, SpatialNumeracyConfig
+from ssa.od import ObjectDetectionModel
+from ssa.scorers.spatial_numeracy_base import (SpatialNumeracyBase,
+                                               SpatialNumeracyConfig)
 from ssa.scoring import NUMERIC_QUERIES
 from ssa.utils.logging import get_log
 from ssa.utils.od_tools import calculate_iou

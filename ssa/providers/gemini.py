@@ -33,12 +33,8 @@ SUPPORTED_VERSIONS = {
     GEMINI_2_5_FLASH_LITE_PREV: GeminiConfig(
         key="gemini-2.5-flash-lite-preview-06-17",
     ),
-    GEMINI_2_5_FLASH: GeminiConfig(
-        key="gemini-2.5-flash"
-    ),
-    GEMINI_2_5_PRO: GeminiConfig(
-        key="gemini-2.5-pro"
-    ),
+    GEMINI_2_5_FLASH: GeminiConfig(key="gemini-2.5-flash"),
+    GEMINI_2_5_PRO: GeminiConfig(key="gemini-2.5-pro"),
 }
 
 

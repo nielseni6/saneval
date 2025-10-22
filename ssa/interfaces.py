@@ -23,6 +23,7 @@ class ImageInfo:
         image_id: Unique identifier for the image
         pil_image: PIL Image object
     """
+
     path: str
     image_id: str
     pil_image: Image.Image

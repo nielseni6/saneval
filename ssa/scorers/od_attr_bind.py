@@ -5,18 +5,12 @@ import numpy as np
 import torch
 from PIL import Image
 
-from ssa.od import (
-    DEFAULT_OD_VERSION,
-    ObjectDetectionModel,
-)
+from ssa.od import DEFAULT_OD_VERSION, ObjectDetectionModel
 from ssa.scorers.scorer_base import BaseScorer, BaseScorerConfig
 from ssa.utils.base import DEFAULT_OUTPUT_BASE
 from ssa.utils.logging import get_log
 from ssa.utils.nlp_tools import ObjectAttributeExtractor
-from ssa.utils.od_tools import (
-    calculate_iou,
-    plot_bboxes,
-)
+from ssa.utils.od_tools import calculate_iou, plot_bboxes
 from ssa.vlm import DEFAULT_LLM_VERSION, DEFAULT_VLM_VERSION, Llm, Vlm
 
 log = get_log(__file__)
@@ -912,6 +906,7 @@ Respond with only a number between 0.0 and 1.0 (e.g., "0.8")."""
             if self.config.output_dir:
                 # Use output_dir/bbox_imgs/ when running via benchmark
                 from pathlib import Path
+
                 debug_save_path = Path(self.config.output_dir) / "bbox_imgs"
             else:
                 # Fallback to default path for backward compatibility

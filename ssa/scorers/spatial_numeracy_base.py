@@ -13,18 +13,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 
-from ssa.od import (
-    DEFAULT_OD_VERSION,
-    ObjectDetectionModel,
-)
+from ssa.od import DEFAULT_OD_VERSION, ObjectDetectionModel
 from ssa.scorers.scorer_base import BaseScorer, BaseScorerConfig
 from ssa.utils.base import DEFAULT_OUTPUT_BASE
 from ssa.utils.logging import get_log
 from ssa.utils.nlp_tools import ObjectAttributeExtractor
-from ssa.utils.od_tools import (
-    filter_objects,
-    plot_bboxes,
-)
+from ssa.utils.od_tools import filter_objects, plot_bboxes
 from ssa.utils.secrets import get_secret
 from ssa.vlm import DEFAULT_LLM_VERSION, Llm
 
@@ -274,7 +268,6 @@ class SpatialNumeracyBase(BaseScorer):
             else:
                 # Fallback to legacy path for backward compatibility
                 debug_save_path = DEFAULT_OUTPUT_BASE
-
 
             debug_img_path = plot_bboxes(
                 image_path,

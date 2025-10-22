@@ -108,10 +108,11 @@ def gen_prompt_id(text: str, image: Optional[Any] = None) -> str:
     This function creates a hash, not a UUID despite the name.
     """
     import warnings
+
     warnings.warn(
         "gen_prompt_id() is deprecated, use generate_prompt_hash() instead",
         DeprecationWarning,
-        stacklevel=2
+        stacklevel=2,
     )
     return generate_prompt_hash(text, image)
 

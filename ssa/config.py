@@ -10,7 +10,7 @@ from pathlib import Path
 
 # Supported image formats for benchmark evaluation
 # These extensions are used when scanning directories for images to evaluate
-SUPPORTED_IMAGE_FORMATS = {'.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif'}
+SUPPORTED_IMAGE_FORMATS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"}
 
 # Default output directory base path
 # When output_dir is not specified, debug outputs are saved here

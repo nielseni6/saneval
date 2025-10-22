@@ -1,11 +1,9 @@
 """Unit tests for ssa.utils.base module."""
+
 import pytest
-from ssa.utils.base import (
-    hash_str_to_alphanumeric,
-    unique_id,
-    short_randomstr,
-    DEFAULT_RANDOM_CHARS,
-)
+
+from ssa.utils.base import (DEFAULT_RANDOM_CHARS, hash_str_to_alphanumeric,
+                            short_randomstr, unique_id)
 
 
 class TestHashing:
@@ -38,7 +36,7 @@ class TestHashing:
     def test_hash_no_special_chars(self):
         """Hash should contain only letters and numbers."""
         result = hash_str_to_alphanumeric("test!@#$%", chars=15)
-        assert result.replace('_', '').replace('-', '').isalnum()
+        assert result.replace("_", "").replace("-", "").isalnum()
 
 
 class TestUniqueId:

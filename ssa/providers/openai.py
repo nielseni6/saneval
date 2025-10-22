@@ -10,10 +10,7 @@ from pydantic import BaseModel
 
 from ssa.interfaces import BaseImageEditingMixin
 from ssa.utils.aspect_ratios import resolve_aspect_ratio_and_dimensions
-from ssa.utils.images import (
-    encode_image,
-    save_image_to_disk,
-)
+from ssa.utils.images import encode_image, save_image_to_disk
 from ssa.utils.logging import get_log
 from ssa.utils.secrets import get_secret
 from ssa.utils.system import apply_overrides
@@ -111,7 +108,9 @@ class OpenAIProvider(BaseImageEditingMixin):
             api_key_to_use = self._api_key or get_secret("OPENAI_API_KEY")
         except ValueError:
             # Fall back to default OpenAI credential resolution (env vars, config file)
-            log.info("OPENAI_API_KEY not found in environment, using OpenAI's default credential resolution")
+            log.info(
+                "OPENAI_API_KEY not found in environment, using OpenAI's default credential resolution"
+            )
             api_key_to_use = None
 
         if api_key_to_use:

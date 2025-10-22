@@ -1,8 +1,10 @@
 """Shared pytest fixtures for SANEval tests."""
-import pytest
+
 from pathlib import Path
-from PIL import Image
+
 import numpy as np
+import pytest
+from PIL import Image
 
 
 @pytest.fixture
@@ -30,9 +32,7 @@ def test_prompt():
     from ssa.prompts import Prompt
 
     return Prompt(
-        id="test-prompt-001",
-        text="A red ball next to a blue cube",
-        source="test"
+        id="test-prompt-001", text="A red ball next to a blue cube", source="test"
     )
 
 
@@ -43,10 +43,6 @@ def test_corpus(test_prompt):
 
     prompts = [
         test_prompt,
-        Prompt(
-            id="test-prompt-002",
-            text="Three yellow stars",
-            source="test"
-        ),
+        Prompt(id="test-prompt-002", text="Three yellow stars", source="test"),
     ]
     return Corpus("test-corpus", prompts)

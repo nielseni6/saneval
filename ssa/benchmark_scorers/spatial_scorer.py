@@ -9,9 +9,8 @@ try:
 except ImportError:
     mlflow = None  # Handle environments without MLflow
 
-from ssa.benchmark_scorers.spatial_numeracy_benchmark_base import (
-    SpatialNumeracyBenchmarkBase,
-)
+from ssa.benchmark_scorers.spatial_numeracy_benchmark_base import \
+    SpatialNumeracyBenchmarkBase
 from ssa.prompts import Corpus, Prompt
 from ssa.scorers.model_scorer import ModelScorer
 from ssa.scoring import SPATIAL

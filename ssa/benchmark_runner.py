@@ -18,17 +18,12 @@ from pathlib import Path
 from pprint import pformat
 from typing import Any, Dict, List, Optional, Set, Union
 
-from ssa.scorers.model_scorer import (
-    ModelScorer,
-)
+from ssa.scorers.model_scorer import ModelScorer
 from ssa.utils.aggregator import Aggregator
-from ssa.utils.base import (
-    prepare_artifact_path,
-    reset_run_dir,
-    unique_id,
-)
+from ssa.utils.base import prepare_artifact_path, reset_run_dir, unique_id
 from ssa.utils.logging import log
-from ssa.utils.reasoning_trace import ReasoningTraceCollector, default_json_handler
+from ssa.utils.reasoning_trace import (ReasoningTraceCollector,
+                                       default_json_handler)
 from ssa.utils.system import default_context, get_subconfigs
 
 
@@ -140,7 +135,7 @@ def benchmark_model(
     for scorer in scorers.values():
         scorer.set_trace_collector(trace_collector)
         # Set output directory for debug outputs (e.g., bounding box visualizations)
-        if hasattr(scorer.model, 'config'):
+        if hasattr(scorer.model, "config"):
             scorer.model.config.output_dir = str(output_dir)
 
     aggregates, run_results, active_benchmark_scorers = simple_eval(
@@ -157,14 +152,10 @@ def benchmark_model(
     # Aggregate metrics from benchmark scorers (add additional metrics if needed)
     for scorer_key, benchmark_scorer in active_benchmark_scorers.items():
         try:
-            scorer_agg_metrics = benchmark_scorer.aggregate_metrics(
-                final_agg_dict={}
-            )
+            scorer_agg_metrics = benchmark_scorer.aggregate_metrics(final_agg_dict={})
             aggregates.update(scorer_agg_metrics)
         except Exception as e:
-            log.error(
-                f"Error aggregating metrics for {scorer_key}: {e}", exc_info=True
-            )
+            log.error(f"Error aggregating metrics for {scorer_key}: {e}", exc_info=True)
 
     log.info(f"aggregates:\n{pformat(aggregates)}")
 
@@ -202,8 +193,7 @@ def benchmark_model(
 
 
 def remove_circular_refs(
-    obj: Union[Dict[str, Any], List[Any], Any],
-    seen: Optional[Set[int]] = None
+    obj: Union[Dict[str, Any], List[Any], Any], seen: Optional[Set[int]] = None
 ) -> Union[Dict[str, Any], List[Any], str, None, int, float, bool]:
     """
     Recursively remove circular references and non-serializable objects from a data structure.
@@ -340,6 +330,7 @@ def _process_prompt_result(
 
     return current_prompt_result, failed_gen, failed_scoring_prompts
 
+
 def _load_and_parse_images(images_dir: str) -> List[tuple]:
     """
     Load images from directory and extract prompts from filenames.
@@ -351,6 +342,7 @@ def _load_and_parse_images(images_dir: str) -> List[tuple]:
         List of (image_file_path, Prompt) tuples
     """
     from pathlib import Path
+
     from ssa.config import SUPPORTED_IMAGE_FORMATS
     from ssa.prompts import Prompt, generate_prompt_hash
 
@@ -365,7 +357,7 @@ def _load_and_parse_images(images_dir: str) -> List[tuple]:
         if img_file.suffix.lower() in SUPPORTED_IMAGE_FORMATS:
             # Parse filename: split by underscore, everything before last underscore is the prompt
             filename_no_ext = img_file.stem
-            parts = filename_no_ext.rsplit('_', 1)
+            parts = filename_no_ext.rsplit("_", 1)
 
             if len(parts) == 2:
                 prompt_text = parts[0]
@@ -378,23 +370,22 @@ def _load_and_parse_images(images_dir: str) -> List[tuple]:
             # Create a Prompt object
             prompt_id = generate_prompt_hash(prompt_text)
             prompt = Prompt(
-                id=f"{prompt_id}_{img_num}",
-                text=prompt_text,
-                source="filename"
+                id=f"{prompt_id}_{img_num}", text=prompt_text, source="filename"
             )
 
             image_prompt_pairs.append((img_file, prompt))
 
     log.info(f"Found {len(image_prompt_pairs)} images in {images_dir}")
     if image_prompt_pairs:
-        log.info(f"Example: '{image_prompt_pairs[0][1].text}' from '{image_prompt_pairs[0][0].name}'")
+        log.info(
+            f"Example: '{image_prompt_pairs[0][1].text}' from '{image_prompt_pairs[0][0].name}'"
+        )
 
     return image_prompt_pairs
 
 
 def _create_standardized_scorers(
-    model_scorers: Dict[str, "ModelScorer"],
-    prompts_list: List["Prompt"]
+    model_scorers: Dict[str, "ModelScorer"], prompts_list: List["Prompt"]
 ) -> List["ScorerInterface"]:
     """
     Create standardized scorer adapters from model scorers.
@@ -432,7 +423,7 @@ def _create_standardized_scorers(
 def _process_image_prompts(
     image_prompt_pairs: List[tuple],
     runner: "StandardizedBenchmarkRunner",
-    trace_collector: Optional["ReasoningTraceCollector"] = None
+    trace_collector: Optional["ReasoningTraceCollector"] = None,
 ) -> tuple[List[Dict[str, Any]], int, int]:
     """
     Process each image-prompt pair and collect scoring results.
@@ -446,7 +437,9 @@ def _process_image_prompts(
         Tuple of (run_results, failed_gen_count, failed_scoring_count)
     """
     from pathlib import Path
+
     from PIL import Image as PILImage
+
     from ssa.interfaces import ImageInfo
     from ssa.scoring.runner import create_prompt_context_from_legacy
 
@@ -457,9 +450,7 @@ def _process_image_prompts(
     job_t0 = time.time()
 
     for pidx, (img_file, prompt) in enumerate(image_prompt_pairs):
-        log.info(
-            f"Image {pidx + 1}/{total_prompts} id={prompt.id} : {prompt.text}"
-        )
+        log.info(f"Image {pidx + 1}/{total_prompts} id={prompt.id} : {prompt.text}")
 
         # Start trace collection for this prompt
         if trace_collector:
@@ -474,9 +465,7 @@ def _process_image_prompts(
             loaded_image = PILImage.open(image_path)
             # Create standardized image info object
             generated_image = ImageInfo(
-                path=image_path,
-                image_id=prompt.id,
-                pil_image=loaded_image
+                path=image_path, image_id=prompt.id, pil_image=loaded_image
             )
             log.info(f"Loaded image from {image_path}")
         except Exception as e:
@@ -513,7 +502,9 @@ def _process_image_prompts(
                     )
                 else:
                     # Store results in the legacy format for backward compatibility
-                    current_prompt_result[score_result.scorer_name] = score_result.raw_data
+                    current_prompt_result[score_result.scorer_name] = (
+                        score_result.raw_data
+                    )
 
             if scoring_failed:
                 failed_scoring_prompts += 1

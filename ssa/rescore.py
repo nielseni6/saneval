@@ -18,8 +18,8 @@ def re_score_run_disabled(
     from ssa.benchmark_runner import benchmark_model, resolve_benchmark_config
     from ssa.prompts import Corpus, Prompt
     from ssa.utils.logging import log
-    # from ssa.utils.mlflow import get_artifact_cached
 
+    # from ssa.utils.mlflow import get_artifact_cached
     ## TODO: replace get_artifact_cached with local cache logic
     # run_result = get_artifact_cached(run, "run_result.json", use_cache=False)
     if not run_result:
@@ -149,8 +149,11 @@ def find_runs_from_source_targets_disabled(source_targets):
     This function has been disabled as it depends on MLflow.
     """
     from ssa.utils.logging import log
+
     log.error("Rescoring functionality is disabled (MLflow dependency removed)")
-    raise NotImplementedError("Rescoring functionality requires MLflow which has been removed")
+    raise NotImplementedError(
+        "Rescoring functionality requires MLflow which has been removed"
+    )
 
 
 def re_score(
@@ -164,5 +167,8 @@ def re_score(
     Rescoring has been disabled as it depends on MLflow.
     """
     from ssa.utils.logging import log
+
     log.error("Rescoring functionality is disabled (MLflow dependency removed)")
-    raise NotImplementedError("Rescoring functionality requires MLflow which has been removed")
+    raise NotImplementedError(
+        "Rescoring functionality requires MLflow which has been removed"
+    )

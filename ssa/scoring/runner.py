@@ -1,11 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterator, List, Optional
 
-from ssa.scoring.interfaces import (
-    AggregatedResults,
-    BenchmarkScoreResult,
-    ScorerInterface,
-)
+from ssa.scoring.interfaces import (AggregatedResults, BenchmarkScoreResult,
+                                    ScorerInterface)
 from ssa.utils.aggregator import Aggregator
 from ssa.utils.logging import log
 

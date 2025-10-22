@@ -1,11 +1,8 @@
 """Unit tests for ssa.prompts module."""
+
 import pytest
-from ssa.prompts import (
-    generate_prompt_hash,
-    Prompt,
-    Corpus,
-    hash_prompts,
-)
+
+from ssa.prompts import Corpus, Prompt, generate_prompt_hash, hash_prompts
 
 
 class TestPromptHashing:
@@ -59,20 +56,14 @@ class TestPrompt:
 
     def test_prompt_with_categories(self):
         """Prompt should support categories."""
-        prompt = Prompt(
-            id="test-1",
-            text="test",
-            categories=["spatial", "numeracy"]
-        )
+        prompt = Prompt(id="test-1", text="test", categories=["spatial", "numeracy"])
         assert len(prompt.categories) == 2
         assert "spatial" in prompt.categories
 
     def test_prompt_with_extras(self):
         """Prompt should support extras metadata."""
         prompt = Prompt(
-            id="test-1",
-            text="test",
-            extras={"key1": "value1", "key2": 123}
+            id="test-1", text="test", extras={"key1": "value1", "key2": 123}
         )
         assert prompt.extras["key1"] == "value1"
         assert prompt.extras["key2"] == 123
@@ -121,9 +112,7 @@ class TestCorpus:
 
     def test_corpus_has_images_true(self):
         """has_images should return True when images present."""
-        prompts = [
-            Prompt(id="p1", text="prompt 1", image="/path/to/image.png")
-        ]
+        prompts = [Prompt(id="p1", text="prompt 1", image="/path/to/image.png")]
         corpus = Corpus("test", prompts)
         assert corpus.has_images() is True
 

@@ -1,7 +1,10 @@
 """Unit tests for ssa.config module."""
-import pytest
+
 from pathlib import Path
-from ssa.config import SUPPORTED_IMAGE_FORMATS, DEFAULT_OUTPUT_BASE
+
+import pytest
+
+from ssa.config import DEFAULT_OUTPUT_BASE, SUPPORTED_IMAGE_FORMATS
 
 
 class TestConfig:
@@ -14,9 +17,9 @@ class TestConfig:
 
     def test_supported_formats_contents(self):
         """Common image formats should be supported."""
-        assert '.png' in SUPPORTED_IMAGE_FORMATS
-        assert '.jpg' in SUPPORTED_IMAGE_FORMATS
-        assert '.jpeg' in SUPPORTED_IMAGE_FORMATS
+        assert ".png" in SUPPORTED_IMAGE_FORMATS
+        assert ".jpg" in SUPPORTED_IMAGE_FORMATS
+        assert ".jpeg" in SUPPORTED_IMAGE_FORMATS
 
     def test_formats_lowercase(self):
         """All formats should be lowercase."""
@@ -26,7 +29,7 @@ class TestConfig:
     def test_formats_have_dot_prefix(self):
         """All formats should start with a dot."""
         for fmt in SUPPORTED_IMAGE_FORMATS:
-            assert fmt.startswith('.')
+            assert fmt.startswith(".")
 
     def test_default_output_base_is_path(self):
         """Default output base should be a Path."""

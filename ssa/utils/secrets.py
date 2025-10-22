@@ -5,6 +5,7 @@ Provides a simple interface for retrieving secrets from environment variables.
 For production use, consider integrating with dedicated secret management
 services like AWS Secrets Manager or HashiCorp Vault.
 """
+
 import os
 
 

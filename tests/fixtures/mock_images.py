@@ -1,6 +1,7 @@
 """Helper functions for creating mock test images."""
-from PIL import Image, ImageDraw, ImageFont
+
 import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
 
 def create_simple_test_image(width=100, height=100, color=(255, 0, 0)):
@@ -15,7 +16,7 @@ def create_simple_test_image(width=100, height=100, color=(255, 0, 0)):
     Returns:
         PIL Image object
     """
-    return Image.new('RGB', (width, height), color)
+    return Image.new("RGB", (width, height), color)
 
 
 def create_test_image_with_shapes(width=200, height=200):
@@ -32,24 +33,19 @@ def create_test_image_with_shapes(width=200, height=200):
     Returns:
         PIL Image object with shapes
     """
-    img = Image.new('RGB', (width, height), 'white')
+    img = Image.new("RGB", (width, height), "white")
     draw = ImageDraw.Draw(img)
 
     # Draw a red circle
-    draw.ellipse([50, 50, 100, 100], fill='red', outline='black')
+    draw.ellipse([50, 50, 100, 100], fill="red", outline="black")
 
     # Draw a blue rectangle
-    draw.rectangle([120, 50, 170, 100], fill='blue', outline='black')
+    draw.rectangle([120, 50, 170, 100], fill="blue", outline="black")
 
     return img
 
 
-def create_test_image_with_objects(
-    num_objects=3,
-    width=300,
-    height=200,
-    colors=None
-):
+def create_test_image_with_objects(num_objects=3, width=300, height=200, colors=None):
     """
     Create test image with multiple colored circles.
 
@@ -64,12 +60,18 @@ def create_test_image_with_objects(
     Returns:
         PIL Image object with multiple objects
     """
-    img = Image.new('RGB', (width, height), 'white')
+    img = Image.new("RGB", (width, height), "white")
     draw = ImageDraw.Draw(img)
 
     if colors is None:
-        colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255),
-                  (255, 255, 0), (255, 0, 255), (0, 255, 255)]
+        colors = [
+            (255, 0, 0),
+            (0, 255, 0),
+            (0, 0, 255),
+            (255, 255, 0),
+            (255, 0, 255),
+            (0, 255, 255),
+        ]
 
     spacing = width // (num_objects + 1)
     radius = min(30, spacing // 2)
@@ -82,18 +84,14 @@ def create_test_image_with_objects(
         draw.ellipse(
             [x - radius, y - radius, x + radius, y + radius],
             fill=color,
-            outline='black'
+            outline="black",
         )
 
     return img
 
 
 def create_test_image_with_text(
-    text="Test",
-    width=200,
-    height=100,
-    bg_color='white',
-    text_color='black'
+    text="Test", width=200, height=100, bg_color="white", text_color="black"
 ):
     """
     Create test image with text.
@@ -108,7 +106,7 @@ def create_test_image_with_text(
     Returns:
         PIL Image object with text
     """
-    img = Image.new('RGB', (width, height), bg_color)
+    img = Image.new("RGB", (width, height), bg_color)
     draw = ImageDraw.Draw(img)
 
     # Use default font (PIL may not have truetype fonts)

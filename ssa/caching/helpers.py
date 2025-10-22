@@ -9,11 +9,7 @@ import logging
 from typing import Any, Dict, List, Optional, Union
 
 from .config import get_config
-from .prompt_cache import (
-    PromptCache,
-    get_global_cache,
-    init_global_cache,
-)
+from .prompt_cache import PromptCache, get_global_cache, init_global_cache
 
 logger = logging.getLogger(__name__)
 

@@ -9,6 +9,7 @@ This module provides foundational utilities including:
 
 Note: This module has no internal SSA dependencies to avoid circular imports.
 """
+
 import argparse
 import base64
 import os
@@ -34,7 +35,9 @@ from ssa.config import DEFAULT_OUTPUT_BASE as _DEFAULT_OUTPUT_BASE_PATH
 
 # Default base directory for debug outputs when output_dir is not configured
 # Creates a timestamped run directory under the centralized base path
-DEFAULT_OUTPUT_BASE = _DEFAULT_OUTPUT_BASE_PATH / f"run-{time.strftime('%Y%m%d_%H%M%S')}"
+DEFAULT_OUTPUT_BASE = (
+    _DEFAULT_OUTPUT_BASE_PATH / f"run-{time.strftime('%Y%m%d_%H%M%S')}"
+)
 
 EST = pytz.timezone("America/New_York")
 

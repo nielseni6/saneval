@@ -1,7 +1,9 @@
 """Unit tests for ssa.interfaces module."""
+
+import numpy as np
 import pytest
 from PIL import Image
-import numpy as np
+
 from ssa.interfaces import ImageInfo
 
 
@@ -11,9 +13,7 @@ class TestImageInfo:
     def test_imageinfo_creation(self, mock_image):
         """ImageInfo should be created correctly."""
         img_info = ImageInfo(
-            path="/path/to/image.png",
-            image_id="test-001",
-            pil_image=mock_image
+            path="/path/to/image.png", image_id="test-001", pil_image=mock_image
         )
         assert img_info.path == "/path/to/image.png"
         assert img_info.image_id == "test-001"
@@ -21,11 +21,7 @@ class TestImageInfo:
 
     def test_imageinfo_info_property(self, mock_image):
         """Info property should return dict."""
-        img_info = ImageInfo(
-            path="/test.png",
-            image_id="id-1",
-            pil_image=mock_image
-        )
+        img_info = ImageInfo(path="/test.png", image_id="id-1", pil_image=mock_image)
         info = img_info.info
         assert isinstance(info, dict)
         assert info["path"] == "/test.png"
@@ -39,11 +35,7 @@ class TestImageInfo:
             "image.webp",
         ]
         for path in paths:
-            img_info = ImageInfo(
-                path=path,
-                image_id="test",
-                pil_image=mock_image
-            )
+            img_info = ImageInfo(path=path, image_id="test", pil_image=mock_image)
             assert img_info.path == path
 
     def test_imageinfo_with_complex_id(self, mock_image):
@@ -55,8 +47,6 @@ class TestImageInfo:
         ]
         for img_id in complex_ids:
             img_info = ImageInfo(
-                path="/test.png",
-                image_id=img_id,
-                pil_image=mock_image
+                path="/test.png", image_id=img_id, pil_image=mock_image
             )
             assert img_info.image_id == img_id

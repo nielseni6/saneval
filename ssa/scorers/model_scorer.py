@@ -1,12 +1,7 @@
 from ssa.scorers.numeracy import NumeracyScorer
 from ssa.scorers.od_attr_bind import OdAttrBind
 from ssa.scorers.spatial import SpatialScorer
-from ssa.scoring import (
-    NUMERACY,
-    OD_ATTR_BINDING,
-    SCORING_METHODS,
-    SPATIAL,
-)
+from ssa.scoring import NUMERACY, OD_ATTR_BINDING, SCORING_METHODS, SPATIAL
 from ssa.utils.logging import get_log
 
 log = get_log(__file__)
