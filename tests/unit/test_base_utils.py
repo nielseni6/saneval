@@ -2,8 +2,12 @@
 
 import pytest
 
-from ssa.utils.base import (DEFAULT_RANDOM_CHARS, hash_str_to_alphanumeric,
-                            short_randomstr, unique_id)
+from ssa.utils.base import (
+    DEFAULT_RANDOM_CHARS,
+    hash_str_to_alphanumeric,
+    short_randomstr,
+    unique_id,
+)
 
 
 class TestHashing:

@@ -22,8 +22,7 @@ from ssa.scorers.model_scorer import ModelScorer
 from ssa.utils.aggregator import Aggregator
 from ssa.utils.base import prepare_artifact_path, reset_run_dir, unique_id
 from ssa.utils.logging import log
-from ssa.utils.reasoning_trace import (ReasoningTraceCollector,
-                                       default_json_handler)
+from ssa.utils.reasoning_trace import ReasoningTraceCollector, default_json_handler
 from ssa.utils.system import default_context, get_subconfigs
 
 

@@ -5,8 +5,7 @@ Standardized scorer adapters for specific scoring methods.
 import time
 from typing import Any, Dict, List, Optional
 
-from ssa.scoring.interfaces import (BenchmarkScoreResult, ScoreResult,
-                                    ScorerInterface)
+from ssa.scoring.interfaces import BenchmarkScoreResult, ScoreResult, ScorerInterface
 from ssa.utils.logging import log
 
 
@@ -207,8 +206,7 @@ class SpatialScorerAdapter(BaseSpatialNumeracyAdapter):
         # Use dependency injection for benchmark scorer, with default fallback
         if benchmark_scorer is None:
             # Default: create benchmark scorer instance for proper aggregation
-            from ssa.benchmark_scorers.spatial_scorer import \
-                SpatialBenchmarkScorer
+            from ssa.benchmark_scorers.spatial_scorer import SpatialBenchmarkScorer
 
             benchmark_scorer = SpatialBenchmarkScorer(
                 model_scorer=spatial_model_scorer,
@@ -303,8 +301,7 @@ class NumeracyScorerAdapter(BaseSpatialNumeracyAdapter):
         # Use dependency injection for benchmark scorer, with default fallback
         if benchmark_scorer is None:
             # Default: create benchmark scorer instance for proper aggregation
-            from ssa.benchmark_scorers.numeracy_scorer import \
-                NumeracyBenchmarkScorer
+            from ssa.benchmark_scorers.numeracy_scorer import NumeracyBenchmarkScorer
 
             benchmark_scorer = NumeracyBenchmarkScorer(
                 model_scorer=numeracy_model_scorer,

@@ -11,8 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import torch
 
 from ssa.od import ObjectDetectionModel
-from ssa.scorers.spatial_numeracy_base import (SpatialNumeracyBase,
-                                               SpatialNumeracyConfig)
+from ssa.scorers.spatial_numeracy_base import SpatialNumeracyBase, SpatialNumeracyConfig
 from ssa.scoring import SPATIAL_QUERIES
 from ssa.utils.logging import get_log
 
