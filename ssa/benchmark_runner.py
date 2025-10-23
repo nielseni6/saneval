@@ -14,7 +14,7 @@ Usage:
 
 import json
 from pprint import pformat
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union
 
 from ssa.scorers.model_scorer import ModelScorer
 from ssa.utils.base import unique_id
@@ -28,7 +28,9 @@ if TYPE_CHECKING:
     from ssa.scoring.runner import StandardizedBenchmarkRunner
 
 
-def resolve_benchmark_config(scoring_keys, bench_config_overrides):
+def resolve_benchmark_config(
+    scoring_keys: List[str], bench_config_overrides: List[str]
+) -> Dict[str, ModelScorer]:
     """
     Validates and constructs scorer objects for the given scoring keys and config overrides.
     Raises ValueError if an override does not match an enabled scoring key.
@@ -55,7 +57,12 @@ def resolve_benchmark_config(scoring_keys, bench_config_overrides):
     return res
 
 
-def get_config(images_dir, scorers, scoring_config, execution_config):
+def get_config(
+    images_dir: str,
+    scorers: Dict[str, ModelScorer],
+    scoring_config: Optional[Dict[str, Any]],
+    execution_config: Optional[Dict[str, Any]],
+) -> Tuple[str, Dict[str, Any]]:
     """
     Builds a configuration dictionary for the benchmark run, including images dir and scorer configs.
     Returns (name, config_dict).
@@ -95,11 +102,11 @@ def simple_eval(
     rescoring: bool = False,
     execution_config: Optional[Dict[str, Any]] = None,
     trace_collector: Optional[ReasoningTraceCollector] = None,
-):
+) -> Tuple[Dict[str, Any], List[Dict[str, Any]], Dict[str, Any]]:
     """
     Main evaluation loop for a benchmark run using standardized scoring infrastructure.
     Loads images from directory, extracts prompts from filenames, scores them, and aggregates results.
-    Returns (run_results_list, active_benchmark_scorers_dict).
+    Returns (aggregates, run_results_list, active_benchmark_scorers_dict).
     `model_scorers` is a dict of {scoring_key: ssa.scorers.model_scorer.ModelScorer} from `resolve_benchmark_config`.
     """
     # Delegate to standardized implementation
@@ -109,16 +116,17 @@ def simple_eval(
 
 
 def benchmark_model(
-    images_dir,
-    output_dir,
-    scorers,
-    rescoring=False,
-    scoring_config=None,
-    execution_config=None,
-):
+    images_dir: str,
+    output_dir: str,
+    scorers: Dict[str, ModelScorer],
+    rescoring: bool = False,
+    scoring_config: Optional[Dict[str, Any]] = None,
+    execution_config: Optional[Dict[str, Any]] = None,
+) -> str:
     """
     Orchestrates a benchmark run and logs results.
     Loads images from directory, extracts prompts from filenames, evaluates with scorer setup, and logs artifacts.
+    Returns the output directory path.
     """
     from pathlib import Path
 
@@ -194,32 +202,99 @@ def benchmark_model(
 
 
 def remove_circular_refs(
-    obj: Union[Dict[str, Any], List[Any], Any], seen: Optional[Set[int]] = None
+    obj: Union[Dict[str, Any], List[Any], Any],
+    seen: Optional[Set[int]] = None,
+    max_depth: int = 100,
 ) -> Union[Dict[str, Any], List[Any], str, None, int, float, bool]:
     """
-    Recursively remove circular references and non-serializable objects from a data structure.
+    Iteratively remove circular references and non-serializable objects from a data structure.
     Returns a version safe for JSON serialization.
+
+    Args:
+        obj: The object to process
+        seen: Set of object IDs already seen (for circular reference detection)
+        max_depth: Maximum depth to traverse (default: 100)
+
+    Returns:
+        A JSON-serializable version of the object
     """
     primitive_types = (int, str, bool, float, type(None))
+
     if seen is None:
         seen = set()
-    obj_id = id(obj)
 
-    if not isinstance(obj, primitive_types) and obj_id in seen:
-        return None
-    seen.add(obj_id)
-    if isinstance(obj, dict):
-        return {
-            k: remove_circular_refs(v, seen)
-            for k, v in obj.items()
-            if not callable(v) and not k.startswith("__")
-        }
-    elif isinstance(obj, list):
-        return [remove_circular_refs(i, seen) for i in obj]
-    elif isinstance(obj, primitive_types):
-        return obj
-    else:
-        return str(obj)  # fallback for non-serializable objects
+    # Use iterative approach with a stack to avoid recursion limits
+    # Stack items: (object, parent_result_id, key/index, depth)
+    # parent_result_id is the id to look up in results dict, or None for root
+    stack = [(obj, None, None, 0)]
+    results = {}
+
+    while stack:
+        current_obj, parent_result_id, parent_key, depth = stack.pop()
+
+        # Check depth limit
+        if depth > max_depth:
+            if parent_result_id is not None:
+                parent_result = results[parent_result_id]
+                parent_result[parent_key] = "<max_depth_exceeded>"
+            continue
+
+        obj_id = id(current_obj)
+
+        # Handle primitive types
+        if isinstance(current_obj, primitive_types):
+            if parent_result_id is not None:
+                parent_result = results[parent_result_id]
+                parent_result[parent_key] = current_obj
+            else:
+                return current_obj
+            continue
+
+        # Check for circular references
+        if obj_id in seen:
+            if parent_result_id is not None:
+                parent_result = results[parent_result_id]
+                parent_result[parent_key] = None
+            continue
+
+        seen.add(obj_id)
+
+        # Handle dictionaries
+        if isinstance(current_obj, dict):
+            result_dict = {}
+            results[obj_id] = result_dict
+
+            if parent_result_id is not None:
+                parent_result = results[parent_result_id]
+                parent_result[parent_key] = result_dict
+
+            for k, v in current_obj.items():
+                if not callable(v) and not k.startswith("__"):
+                    stack.append((v, obj_id, k, depth + 1))
+
+        # Handle lists
+        elif isinstance(current_obj, list):
+            result_list = [None] * len(current_obj)
+            results[obj_id] = result_list
+
+            if parent_result_id is not None:
+                parent_result = results[parent_result_id]
+                parent_result[parent_key] = result_list
+
+            for i, item in enumerate(current_obj):
+                stack.append((item, obj_id, i, depth + 1))
+
+        # Handle other types (convert to string)
+        else:
+            str_repr = str(current_obj)
+            if parent_result_id is not None:
+                parent_result = results[parent_result_id]
+                parent_result[parent_key] = str_repr
+            else:
+                return str_repr
+
+    # Return the root result
+    return results.get(id(obj), obj)
 
 
 class ProcessingContext:
@@ -232,14 +307,14 @@ class ProcessingContext:
 
 
 def _process_prompt_result(
-    prompt,
-    generated_image,
-    error_message,
-    pidx,
+    prompt: "Prompt",
+    generated_image: Any,
+    error_message: Optional[str],
+    pidx: int,
     context: ProcessingContext,
-    failed_gen,
-    failed_scoring_prompts,
-):
+    failed_gen: int,
+    failed_scoring_prompts: int,
+) -> Tuple[Dict[str, Any], int, int]:
     """
     Process a single prompt result (success or failure) and return updated counters and result dict.
 
@@ -323,7 +398,7 @@ def _process_prompt_result(
     return current_prompt_result, failed_gen, failed_scoring_prompts
 
 
-def _load_and_parse_images(images_dir: str) -> List[tuple]:
+def _load_and_parse_images(images_dir: str) -> List[Tuple[Any, "Prompt"]]:
     """
     Load images from directory and extract prompts from filenames.
 
@@ -413,10 +488,10 @@ def _create_standardized_scorers(
 
 
 def _process_image_prompts(
-    image_prompt_pairs: List[tuple],
+    image_prompt_pairs: List[Tuple[Any, "Prompt"]],
     runner: "StandardizedBenchmarkRunner",
     trace_collector: Optional["ReasoningTraceCollector"] = None,
-) -> tuple[List[Dict[str, Any]], int, int]:
+) -> Tuple[List[Dict[str, Any]], int, int]:
     """
     Process each image-prompt pair and collect scoring results.
 
@@ -516,7 +591,7 @@ def simple_eval_standardized(
     rescoring: bool = False,
     execution_config: Optional[Dict[str, Any]] = None,
     trace_collector: Optional[ReasoningTraceCollector] = None,
-):
+) -> Tuple[Dict[str, Any], List[Dict[str, Any]], Dict[str, Any]]:
     """
     Standardized evaluation loop using new scoring infrastructure with direct image loading.
     Extracts prompts from image filenames in format: {prompt}_{img_num}.ext

@@ -11,6 +11,7 @@
 import json
 import logging
 import os
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 YOLOV11 = "yolo/v11"
 YOLOV12 = "yolo/v12"
@@ -34,7 +35,7 @@ MODEL_TYPE_IMPORTS = {
 }
 
 
-def _get_yolo_class(model_type):
+def _get_yolo_class(model_type: str) -> Type:
     """Lazy import function for YOLO classes to avoid import-time warnings."""
     if model_type not in MODEL_TYPE_IMPORTS:
         raise ValueError(
@@ -76,19 +77,25 @@ MODEL_CONFIGS = {
 
 
 class ObjectDetectionModel:
-    def __init__(self, key, pred_classes="from_json", json_file_path=None):
+    def __init__(
+        self,
+        key: str,
+        pred_classes: str = "from_json",
+        json_file_path: Optional[str] = None,
+    ) -> None:
         if key not in MODEL_CONFIGS:
             raise ValueError(
                 f"Unrecognized OD {key}.\nKnown models: {list(MODEL_CONFIGS.keys())}"
             )
 
-        self.key = key
-        self.config = MODEL_CONFIGS[key]
+        self.key: str = key
+        self.config: Dict[str, Any] = MODEL_CONFIGS[key]
+        self.categories_file_path: str = ""
         self._setup_categories_path(json_file_path)
-        self.model = self._create_model()
+        self.model: Any = self._create_model()
         self._configure_classes(pred_classes)
 
-    def _setup_categories_path(self, json_file_path):
+    def _setup_categories_path(self, json_file_path: Optional[str]) -> None:
         """Setup the path to the categories JSON file."""
         if json_file_path is None:
             current_script_path = os.path.dirname(os.path.abspath(__file__))
@@ -98,14 +105,14 @@ class ObjectDetectionModel:
         else:
             self.categories_file_path = json_file_path
 
-    def _create_model(self):
+    def _create_model(self) -> Any:
         """Create model instance using switch-like dispatch."""
         model_class_getter = self.config["model_class"]
         model_class = model_class_getter()  # Call the lambda to get the actual class
         weights = self.config["weights"]
         return model_class(weights)
 
-    def _configure_classes(self, pred_classes):
+    def _configure_classes(self, pred_classes: str) -> None:
         """Configure model classes based on model type and prediction settings."""
         # Validate unspecified setting
         if pred_classes == "unspecified" and not self.config.get(
@@ -126,7 +133,7 @@ class ObjectDetectionModel:
         if handler:
             handler()
 
-    def _setup_yoloworld_classes(self):
+    def _setup_yoloworld_classes(self) -> None:
         """Setup classes for YOLO World model."""
         classes = self.get_classes()
         if not classes:
@@ -137,7 +144,7 @@ class ObjectDetectionModel:
             return
         self.model.set_classes(classes)
 
-    def _setup_yoloeverything_classes(self, pred_classes):
+    def _setup_yoloeverything_classes(self, pred_classes: str) -> None:
         """Setup classes for YOLO Everything model."""
         if pred_classes != "unspecified":
             classes = self.get_classes()
@@ -149,24 +156,24 @@ class ObjectDetectionModel:
                 return
             self.model.set_classes(classes, self.model.get_text_pe(classes))
 
-    def __call__(self, image):
+    def __call__(self, image: Union[str, Any]) -> Any:
         """
         Detect objects in the given image using the specified model.
 
         Args:
-            image (str or np.ndarray): Path to the image file or an image array.
+            image: Path to the image file or an image array.
 
         Returns:
-            list: List of detected objects with bounding boxes and labels.
+            List of detected objects with bounding boxes and labels.
         """
         return self.model(image)
 
-    def set_classes(self, classes):
+    def set_classes(self, classes: List[str]) -> None:
         """
         Set the categories of objects that the model can detect.
 
         Args:
-            classes (list): List of category names to set for the model.
+            classes: List of category names to set for the model.
         """
         if not self.config.get("supports_class_setting", False):
             logging.warning(f"Setting classes is not supported for {self.key} model.")
@@ -191,12 +198,12 @@ class ObjectDetectionModel:
         if setter:
             setter()
 
-    def get_classes(self):
+    def get_classes(self) -> List[str]:
         """
         Get the categories of objects that the model can detect.
 
         Returns:
-            list: List of category names.
+            List of category names.
         """
         try:
             with open(self.categories_file_path, "r") as f:

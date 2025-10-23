@@ -46,12 +46,12 @@ class Prompt:
     id: str
     text: str
     source: str = None
-    categories: list[str] = field(default_factory=list)
+    categories: List[str] = field(default_factory=list)
 
     # Optionally cache eval criteria on the prompt object
     # This can be used to ensure criteria remain constant across
     # benchmark runs
-    criteria: list[str] = field(default_factory=list)
+    criteria: List[str] = field(default_factory=list)
 
     # Optional - a URI for a source-image
     image: str = None
@@ -63,7 +63,7 @@ class Prompt:
 
     # For synthetically generated and extended prompts
     num_extensions: int = None
-    extensions: list[str] = field(default_factory=list)
+    extensions: List[str] = field(default_factory=list)
     original: str = None
 
     def to_dict(self):
@@ -121,7 +121,7 @@ def gen_prompt_id(text: str, image: Optional[Any] = None) -> str:
 class Corpus:
     def __init__(self, name, prompts, config=None):
         self.name: str = name
-        self.prompts: list[Prompt] = prompts
+        self.prompts: List[Prompt] = prompts
         self.hash = hash_prompts(prompts)[0:DEFAULT_RANDOM_CHARS]
         self.id = f"corpus-{self.hash}"
         self._config = config or {}
@@ -221,7 +221,6 @@ def read_corpus_dir(key):
         if contents:
             return sorted([f.relative_to(data_prompts) for f in contents])
 
-    # S3 support has been removed
     return None
 
 
@@ -264,7 +263,7 @@ def load_corpus_file(key: str, data_file: Union[str, Path]) -> Corpus:
             return corpus
     elif data_file_suffix == "json":
         with open(data_file, "r") as file:
-            data = json.loads(file)
+            data = json.load(file)
             corpus = Corpus(key, to_prompts_list(data))
             _inline[key] = corpus
             return corpus

@@ -23,7 +23,9 @@ def str_to_bool(value):
 
 def truncate(txt, limit=100):
     """Truncate string txt to limit chars"""
-    txt = txt.replace("\n", " ").replace("\r", " ")
+    if txt is None:
+        return ""
+    txt = str(txt).replace("\n", " ").replace("\r", " ")
     if len(txt) <= limit:
         return txt
     return f"{txt[0:limit]}..."
@@ -48,8 +50,8 @@ def grey_str(txt):
 
 
 def strip_color_codes(text):
-    if not isinstance(text, str) or text is None:
-        text = ""
+    if text is None or not isinstance(text, str):
+        return ""
     return re.sub(r"\033\[[0-9;]*[a-zA-Z]", "", text)
 
 
@@ -165,7 +167,7 @@ def set_log_format():
 
 
 def rebuild_formatter():
-    ch.setFormatter(plain, color)
+    ch.setFormatter(build_formatter(plain, color))
 
 
 def set_plain(val: bool = True):
