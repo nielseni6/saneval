@@ -1,3 +1,83 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ssa"
+version = "0.1.0"
+description = "Spatial and Semantic Alignment evaluation framework for text-to-image models"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "SSA Team"}
+]
+keywords = ["benchmarking", "text-to-image", "spatial-reasoning", "numeracy", "attribute-binding"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "pillow>=10.0.0,<11.0.0",
+    "torch>=2.0.0,<3.0.0",
+    "numpy>=1.24.0,<2.0.0",
+    "pyyaml>=6.0.0,<7.0.0",
+    "tqdm>=4.65.0,<5.0.0",
+    "colorlog>=6.7.0,<7.0.0",
+    "pytz>=2023.3,<2024.0",
+    "pydantic>=2.0.0,<3.0.0",
+    "jsonschema>=4.0.0,<5.0.0",
+    "google-genai>=0.3.0,<1.0.0",
+    "google-api-core>=2.11.0,<3.0.0",
+    "matplotlib>=3.7.0,<4.0.0",
+    "ultralytics>=8.0.0,<9.0.0",
+    "pandas>=2.0.0,<3.0.0",
+    "requests>=2.31.0,<3.0.0",
+    "cog>=0.8.0,<1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0,<8.0.0",
+    "pytest-cov>=4.1.0,<5.0.0",
+    "pytest-mock>=3.11.0,<4.0.0",
+    "pytest-asyncio>=0.21.0,<1.0.0",
+    "pytest-timeout>=2.1.0,<3.0.0",
+    "pytest-split>=0.8.0,<1.0.0",
+    "black>=23.0.0,<25.0.0",
+    "isort>=5.12.0,<6.0.0",
+    "flake8>=6.0.0,<8.0.0",
+    "mypy>=1.4.0,<2.0.0",
+    "types-PyYAML>=6.0.0",
+    "types-requests>=2.31.0",
+    "types-pytz>=2023.3.0",
+    "sphinx>=7.0.0,<8.0.0",
+    "sphinx-rtd-theme>=1.3.0,<2.0.0",
+    "ipython>=8.12.0,<9.0.0",
+    "ipdb>=0.13.0,<1.0.0",
+    "pip-tools>=7.0.0,<8.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/saneval"
+Repository = "https://github.com/yourusername/saneval"
+Documentation = "https://github.com/yourusername/saneval#readme"
+"Bug Tracker" = "https://github.com/yourusername/saneval/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ssa*"]
+exclude = ["tests*", "docs*"]
+
 [tool.black]
 line-length = 88
 target-version = ['py38', 'py39', 'py310', 'py311']
@@ -5,3 +85,24 @@ target-version = ['py38', 'py39', 'py310', 'py311']
 [tool.isort]
 profile = "black"
 line_length = 88
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+    "--cov=ssa",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]

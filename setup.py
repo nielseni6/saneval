@@ -26,7 +26,7 @@ setup(
     long_description_content_type="text/markdown",
     author="SANEval Contributors",
     author_email="saneval@example.com",
-    license="MIT",
+    license="Apache-2.0",
     packages=find_packages(),
     python_requires=">=3.8",
     install_requires=requirements,
@@ -46,7 +46,7 @@ setup(
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: Apache Software License",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",

@@ -1,5 +1,6 @@
 # Production dependencies for SSA benchmarking
-# Generated from requirements.in - do not edit directly
+# Use pip-compile to generate requirements.txt from this file:
+#   pip-compile requirements.in
 
 # Core dependencies
 pillow>=10.0.0,<11.0.0
@@ -15,18 +16,18 @@ pydantic>=2.0.0,<3.0.0
 jsonschema>=4.0.0,<5.0.0
 
 # Cloud providers
-google-genai>=0.3.0,<1.0.0  # Google Gemini API
-google-api-core>=2.11.0,<3.0.0  # Google API Core
+google-genai>=0.3.0,<1.0.0
+google-api-core>=2.11.0,<3.0.0
 
 # Visualization
 matplotlib>=3.7.0,<4.0.0
 
-# Object Detection - YOLO models
+# Object Detection
 ultralytics>=8.0.0,<9.0.0
 
 # Data processing
 pandas>=2.0.0,<3.0.0
 
-# Additional dependencies
-requests>=2.31.0,<3.0.0  # For HTTP requests
-cog>=0.8.0,<1.0.0  # For Path type handling
+# Additional
+requests>=2.31.0,<3.0.0
+cog>=0.8.0,<1.0.0
