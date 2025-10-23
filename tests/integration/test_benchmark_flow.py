@@ -43,7 +43,7 @@ class TestImageLoading:
 
     def test_load_and_parse_invalid_directory(self):
         """Test loading from non-existent directory."""
-        with pytest.raises(ValueError):
+        with pytest.raises(FileNotFoundError):
             _load_and_parse_images("/path/that/does/not/exist")
 
 

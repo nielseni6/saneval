@@ -16,6 +16,7 @@ import json
 from pprint import pformat
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union
 
+from ssa.exceptions import InvalidConfigurationError, MetricAggregationError
 from ssa.scorers.model_scorer import ModelScorer
 from ssa.utils.base import unique_id
 from ssa.utils.logging import log
@@ -41,8 +42,9 @@ def resolve_benchmark_config(
     # However, the new BenchmarkScorer classes expect ssa.scorers.model_scorer.ModelScorer instances.
     for config_override in bench_config_overrides:
         if not any(config_override.startswith(f"{key}.") for key in scoring_keys):
-            raise ValueError(
-                f"--bench-config {config_override} invalid, no equivalent scoring enabled: {scoring_keys}"
+            raise InvalidConfigurationError(
+                f"Invalid --bench-config override '{config_override}': "
+                f"no matching scorer in enabled scoring methods {scoring_keys}"
             )
 
     res = {
@@ -163,8 +165,22 @@ def benchmark_model(
         try:
             scorer_agg_metrics = benchmark_scorer.aggregate_metrics(final_agg_dict={})
             aggregates.update(scorer_agg_metrics)
+        except (AttributeError, KeyError, ValueError, TypeError) as e:
+            # Log specific errors that can occur during metric aggregation:
+            # - AttributeError: scorer missing aggregate_metrics method or required attributes
+            # - KeyError: accessing missing keys in metric dictionaries
+            # - ValueError: invalid values during metric calculations
+            # - TypeError: type mismatches in metric operations
+            log.error(
+                f"Error aggregating metrics for scorer '{scorer_key}': {e}",
+                exc_info=True,
+            )
         except Exception as e:
-            log.error(f"Error aggregating metrics for {scorer_key}: {e}", exc_info=True)
+            # Catch any unexpected errors but log them separately
+            log.error(
+                f"Unexpected error aggregating metrics for scorer '{scorer_key}': {e}",
+                exc_info=True,
+            )
 
     log.info(f"aggregates:\n{pformat(aggregates)}")
 
@@ -415,7 +431,7 @@ def _load_and_parse_images(images_dir: str) -> List[Tuple[Any, "Prompt"]]:
 
     images_path = Path(images_dir)
     if not images_path.exists():
-        raise ValueError(f"Images directory does not exist: {images_dir}")
+        raise FileNotFoundError(f"Images directory does not exist: '{images_dir}'")
 
     # Parse image files and extract prompts from filenames
     # Format: {prompt}_{img_num}.ext
@@ -480,9 +496,9 @@ def _create_standardized_scorers(
                 )
                 standardized_scorers.append(adapter)
             except ValueError as e:
-                log.error(f"Failed to create adapter for {scorer_key}: {e}")
+                log.error(f"Failed to create adapter for scorer '{scorer_key}': {e}")
         else:
-            log.warning(f"No adapter available for scorer: {scorer_key}")
+            log.warning(f"No adapter available for scorer '{scorer_key}'")
 
     return standardized_scorers
 
@@ -533,7 +549,7 @@ def _process_image_prompts(
             )
             log.info(f"Loaded image from {image_path}")
         except Exception as e:
-            log.error(f"Failed to load image {image_path}: {e}")
+            log.error(f"Failed to load image '{image_path}': {e}")
             generated_image = None
             error_message = f"Failed to load image: {e}"
 
@@ -562,7 +578,7 @@ def _process_image_prompts(
                 if not score_result.success:
                     scoring_failed = True
                     log.error(
-                        f"Scoring failed for {score_result.scorer_name} on prompt {prompt.id}"
+                        f"Scoring failed for scorer '{score_result.scorer_name}' on prompt '{prompt.id}'"
                     )
                 else:
                     # Store results in the legacy format for backward compatibility
@@ -633,7 +649,7 @@ def simple_eval_standardized(
             log.info(f"Successfully warmed up {scorer.scorer_name} scorer.")
         except Exception as e:
             log.error(
-                f"Error during warmup for {scorer.scorer_name} scorer: {e}",
+                f"Error during warmup for scorer '{scorer.scorer_name}': {e}",
                 exc_info=True,
             )
 

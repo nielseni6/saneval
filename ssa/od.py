@@ -13,6 +13,8 @@ import logging
 import os
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
+from ssa.exceptions import InvalidConfigurationError, ValidationError
+
 YOLOV11 = "yolo/v11"
 YOLOV12 = "yolo/v12"
 YOLOWORLD = "yolo/world"
@@ -38,8 +40,9 @@ MODEL_TYPE_IMPORTS = {
 def _get_yolo_class(model_type: str) -> Type:
     """Lazy import function for YOLO classes to avoid import-time warnings."""
     if model_type not in MODEL_TYPE_IMPORTS:
-        raise ValueError(
-            f"Unknown model type: {model_type}. Supported types: {list(MODEL_TYPE_IMPORTS.keys())}"
+        raise InvalidConfigurationError(
+            f"Unknown model type '{model_type}'. "
+            f"Supported types: {', '.join(MODEL_TYPE_IMPORTS.keys())}"
         )
 
     return MODEL_TYPE_IMPORTS[model_type]()
@@ -77,15 +80,57 @@ MODEL_CONFIGS = {
 
 
 class ObjectDetectionModel:
+    """
+    Object Detection model wrapper supporting multiple YOLO variants.
+
+    This class provides a unified interface for different YOLO-based object detection models,
+    handling model initialization, class configuration, and inference.
+
+    Args:
+        key: Model identifier (e.g., 'yolo/v11', 'yolo/world', 'yolo/e')
+        pred_classes: How to configure prediction classes. Valid options:
+            - "from_json" (default): Load classes from JSON file
+            - "unspecified": Use open-vocabulary prediction (YOLO-E only)
+        json_file_path: Optional path to custom JSON file containing class definitions.
+            If None, uses default path: ../data/pred_classes/saneval.json
+
+    Raises:
+        InvalidConfigurationError: If key is not a recognized model type
+        ValidationError: If pred_classes has an invalid value
+        FileNotFoundError: If json_file_path is specified but doesn't exist
+
+    Example:
+        >>> model = ObjectDetectionModel("yolo/e", pred_classes="from_json")
+        >>> results = model(image_path)
+    """
+
+    # Valid values for pred_classes parameter
+    VALID_PRED_CLASSES = {"from_json", "unspecified"}
+
     def __init__(
         self,
         key: str,
         pred_classes: str = "from_json",
         json_file_path: Optional[str] = None,
     ) -> None:
+        # Validate model key
         if key not in MODEL_CONFIGS:
-            raise ValueError(
-                f"Unrecognized OD {key}.\nKnown models: {list(MODEL_CONFIGS.keys())}"
+            raise InvalidConfigurationError(
+                f"Unrecognized model key '{key}'. "
+                f"Valid options are: {', '.join(MODEL_CONFIGS.keys())}"
+            )
+
+        # Validate pred_classes parameter
+        if pred_classes not in self.VALID_PRED_CLASSES:
+            raise ValidationError(
+                f"Invalid pred_classes value '{pred_classes}'. "
+                f"Valid options are: {', '.join(self.VALID_PRED_CLASSES)}"
+            )
+
+        # Validate json_file_path if provided
+        if json_file_path is not None and not os.path.exists(json_file_path):
+            raise FileNotFoundError(
+                f"Specified json_file_path does not exist: {json_file_path}"
             )
 
         self.key: str = key
@@ -114,13 +159,13 @@ class ObjectDetectionModel:
 
     def _configure_classes(self, pred_classes: str) -> None:
         """Configure model classes based on model type and prediction settings."""
-        # Validate unspecified setting
+        # Validate unspecified setting - only supported by YOLOE
         if pred_classes == "unspecified" and not self.config.get(
             "supports_unspecified", False
         ):
-            logging.warning(
-                f"Open prediction setting 'unspecified' only works for {YOLOEVERYTHING} model. "
-                f"For {self.key} model, pred_classes will default to 'from_json'."
+            raise ValidationError(
+                f"Open-vocabulary prediction ('unspecified') is only supported by the "
+                f"{YOLOEVERYTHING} model. Model '{self.key}' requires pred_classes='from_json'."
             )
 
         # Configure classes using switch-like dispatch
@@ -138,7 +183,7 @@ class ObjectDetectionModel:
         classes = self.get_classes()
         if not classes:
             logging.warning(
-                f"No classes found for {self.key}. Skipping class configuration. "
+                f"No classes found for model '{self.key}'. Skipping class configuration. "
                 f"Model will use default classes or may not work properly."
             )
             return
@@ -150,7 +195,7 @@ class ObjectDetectionModel:
             classes = self.get_classes()
             if not classes:
                 logging.warning(
-                    f"No classes found for {self.key}. Skipping class configuration. "
+                    f"No classes found for model '{self.key}'. Skipping class configuration. "
                     f"Model will use default classes or may not work properly."
                 )
                 return
@@ -176,13 +221,13 @@ class ObjectDetectionModel:
             classes: List of category names to set for the model.
         """
         if not self.config.get("supports_class_setting", False):
-            logging.warning(f"Setting classes is not supported for {self.key} model.")
+            logging.warning(f"Setting classes is not supported for model '{self.key}'.")
             return
 
         # Validate classes before setting
         if not classes:
             logging.warning(
-                f"Cannot set classes for {self.key}: empty class list provided."
+                f"Cannot set classes for model '{self.key}': empty class list provided."
             )
             return
 
@@ -211,14 +256,17 @@ class ObjectDetectionModel:
             category_names = data.get("categories", [])
             if not category_names:
                 logging.warning(
-                    f"No categories found in {self.categories_file_path} or key 'categories' is missing/empty."
+                    f"No categories found in '{self.categories_file_path}' "
+                    f"or key 'categories' is missing/empty."
                 )
                 return []
         except FileNotFoundError:
-            logging.error(f"The file {self.categories_file_path} was not found.")
+            logging.error(f"Categories file not found: '{self.categories_file_path}'")
             return []
         except json.JSONDecodeError:
-            logging.error(f"Could not decode JSON from {self.categories_file_path}.")
+            logging.error(
+                f"Invalid JSON in categories file: '{self.categories_file_path}'"
+            )
             return []
 
         return category_names
