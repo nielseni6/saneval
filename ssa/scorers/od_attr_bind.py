@@ -607,7 +607,9 @@ class OdAttrBind(BaseScorer):
 
             try:
                 # Use VLM to answer the question
-                response = self.vlm.call(question, image=cropped_image)
+                response = self.vlm.call(
+                    question, image=cropped_image, scorer_name=self.scorer_name
+                )
 
                 # Score based on how well the response matches the expected attribute
                 score = self.score_attribute_match(response, attribute)
@@ -710,7 +712,7 @@ Attribute word: "{attribute}"
 Respond with only the category name (e.g., "color", "size", etc.)."""
 
         try:
-            response = self.llm.call(prompt)
+            response = self.llm.call(prompt, scorer_name=self.scorer_name)
             # Extract the category from the response
             category = response.strip().lower()
 
@@ -795,7 +797,7 @@ Consider semantic similarity, synonyms, and related concepts. For example:
 Respond with only a number between 0.0 and 1.0 (e.g., "0.8")."""
 
         try:
-            response_text = self.llm.call(prompt)
+            response_text = self.llm.call(prompt, scorer_name=self.scorer_name)
             # Extract the numeric score from the response
             score_str = response_text.strip()
 

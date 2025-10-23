@@ -51,6 +51,51 @@ def _format_unsupported_version_error(
     return f"Unsupported {model_type} version: '{key}'. Available versions: {versions_list}"
 
 
+def _try_get_from_cache(cache, model_key, query, image, schema, seed, temperature):
+    """Try to retrieve a cached response. Returns None if not found or on error."""
+    try:
+        cached_response = cache.get(
+            query=query,
+            model_key=model_key,
+            image=image,
+            schema=schema,
+            seed=seed,
+            temperature=temperature,
+        )
+        if cached_response is not None:
+            query_preview = (
+                str(query)[:50] + "..." if len(str(query)) > 50 else str(query)
+            )
+            log.debug(f"Cache HIT: {model_key} | {query_preview}")
+            return cached_response
+    except (ValueError, TypeError, UnicodeError, KeyError, AttributeError) as e:
+        log.warning(
+            f"Cache lookup failed for {model_key}: {e}. Proceeding without cache."
+        )
+    return None
+
+
+def _try_put_to_cache(
+    cache, model_key, query, response, image, schema, seed, temperature, metadata
+):
+    """Try to store a response in cache. Logs warning on failure."""
+    try:
+        cache.put(
+            query=query,
+            model_key=model_key,
+            response=response,
+            image=image,
+            schema=schema,
+            seed=seed,
+            temperature=temperature,
+            metadata=metadata,
+        )
+    except (ValueError, TypeError, UnicodeError, KeyError, AttributeError) as e:
+        log.warning(
+            f"Failed to cache response for {model_key}: {e}. Response not cached."
+        )
+
+
 def _cached_model_call(
     model_instance: Union["Llm", "Vlm"],
     model_type: str,
@@ -81,71 +126,40 @@ def _cached_model_call(
     Returns:
         The model response (from cache or fresh call)
     """
-    # Determine caching behavior
-    if use_cache or (use_cache is None):
-        cache = get_global_cache()
+    # Determine if caching should be used
+    cache = get_global_cache() if (use_cache or use_cache is None) else None
     if use_cache is None:
-        # Use instance setting if not specified, but respect global cache availability
         use_cache = model_instance.enable_caching and (cache is not None)
 
-    # If caching is disabled, make direct call
-    if not use_cache:
-        response = model_instance.model.call(
-            query, image=image, schema=schema, seed=seed, temperature=temperature
+    # Try cache lookup if caching is enabled
+    if cache and use_cache:
+        cached_response = _try_get_from_cache(
+            cache, model_instance.key, query, image, schema, seed, temperature
         )
-        model_instance._record_trace(
-            model_type, query, response, scorer_name, step_description
-        )
-        return response
-
-    # Try to get from cache first (only if caching is enabled)
-    if cache is not None and use_cache:
-        try:
-            cached_response = cache.get(
-                query=query,
-                model_key=model_instance.key,
-                image=image,
-                schema=schema,
-                seed=seed,
-                temperature=temperature,
+        if cached_response is not None:
+            model_instance._record_trace(
+                model_type, query, cached_response, scorer_name, step_description
             )
-            if cached_response is not None:
-                # Only log cache hits at debug level with truncated query for readability
-                query_preview = (
-                    str(query)[:50] + "..." if len(str(query)) > 50 else str(query)
-                )
-                log.debug(f"Cache HIT: {model_instance.key} | {query_preview}")
-                model_instance._record_trace(
-                    model_type, query, cached_response, scorer_name, step_description
-                )
-                return cached_response
-        except (ValueError, TypeError, UnicodeError, KeyError, AttributeError) as e:
-            log.warning(
-                f"Cache lookup failed for {model_instance.key}: {e}. Proceeding without cache."
-            )
+            return cached_response
 
-    # Make the actual call
+    # Make the actual model call
     response = model_instance.model.call(
         query, image=image, schema=schema, seed=seed, temperature=temperature
     )
 
-    # Cache the response (only if caching is enabled)
-    if cache is not None and use_cache:
-        try:
-            cache.put(
-                query=query,
-                model_key=model_instance.key,
-                response=response,
-                image=image,
-                schema=schema,
-                seed=seed,
-                temperature=temperature,
-                metadata={"instance_class": model_instance.__class__.__name__},
-            )
-        except (ValueError, TypeError, UnicodeError, KeyError, AttributeError) as e:
-            log.warning(
-                f"Failed to cache response for {model_instance.key}: {e}. Response not cached."
-            )
+    # Try to cache the response if caching is enabled
+    if cache and use_cache:
+        _try_put_to_cache(
+            cache,
+            model_instance.key,
+            query,
+            response,
+            image,
+            schema,
+            seed,
+            temperature,
+            {"instance_class": model_instance.__class__.__name__},
+        )
 
     model_instance._record_trace(
         model_type, query, response, scorer_name, step_description

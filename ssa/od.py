@@ -11,7 +11,7 @@
 import json
 import logging
 import os
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 from ssa.exceptions import InvalidConfigurationError, ValidationError
 

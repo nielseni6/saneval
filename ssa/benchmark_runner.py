@@ -16,7 +16,7 @@ import json
 from pprint import pformat
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union
 
-from ssa.exceptions import InvalidConfigurationError, MetricAggregationError
+from ssa.exceptions import InvalidConfigurationError
 from ssa.scorers.model_scorer import ModelScorer
 from ssa.utils.base import unique_id
 from ssa.utils.logging import log
@@ -217,6 +217,53 @@ def benchmark_model(
     return str(output_dir)
 
 
+def _assign_to_parent(
+    results: Dict[int, Any],
+    parent_result_id: Optional[int],
+    parent_key: Any,
+    value: Any,
+) -> None:
+    """Helper to assign a value to a parent container."""
+    if parent_result_id is not None:
+        parent_result = results[parent_result_id]
+        parent_result[parent_key] = value
+
+
+def _process_dict_for_circular_refs(
+    current_obj: dict,
+    obj_id: int,
+    depth: int,
+    stack: List[Tuple],
+    results: Dict[int, Any],
+) -> Dict[str, Any]:
+    """Process a dictionary for circular reference removal."""
+    result_dict = {}
+    results[obj_id] = result_dict
+
+    for k, v in current_obj.items():
+        if not callable(v) and not k.startswith("__"):
+            stack.append((v, obj_id, k, depth + 1))
+
+    return result_dict
+
+
+def _process_list_for_circular_refs(
+    current_obj: list,
+    obj_id: int,
+    depth: int,
+    stack: List[Tuple],
+    results: Dict[int, Any],
+) -> List[Any]:
+    """Process a list for circular reference removal."""
+    result_list = [None] * len(current_obj)
+    results[obj_id] = result_list
+
+    for i, item in enumerate(current_obj):
+        stack.append((item, obj_id, i, depth + 1))
+
+    return result_list
+
+
 def remove_circular_refs(
     obj: Union[Dict[str, Any], List[Any], Any],
     seen: Optional[Set[int]] = None,
@@ -239,9 +286,6 @@ def remove_circular_refs(
     if seen is None:
         seen = set()
 
-    # Use iterative approach with a stack to avoid recursion limits
-    # Stack items: (object, parent_result_id, key/index, depth)
-    # parent_result_id is the id to look up in results dict, or None for root
     stack = [(obj, None, None, 0)]
     results = {}
 
@@ -250,66 +294,45 @@ def remove_circular_refs(
 
         # Check depth limit
         if depth > max_depth:
-            if parent_result_id is not None:
-                parent_result = results[parent_result_id]
-                parent_result[parent_key] = "<max_depth_exceeded>"
+            _assign_to_parent(
+                results, parent_result_id, parent_key, "<max_depth_exceeded>"
+            )
+            continue
+
+        # Handle primitive types
+        if isinstance(current_obj, primitive_types):
+            if parent_result_id is None:
+                return current_obj
+            _assign_to_parent(results, parent_result_id, parent_key, current_obj)
             continue
 
         obj_id = id(current_obj)
 
-        # Handle primitive types
-        if isinstance(current_obj, primitive_types):
-            if parent_result_id is not None:
-                parent_result = results[parent_result_id]
-                parent_result[parent_key] = current_obj
-            else:
-                return current_obj
-            continue
-
         # Check for circular references
         if obj_id in seen:
-            if parent_result_id is not None:
-                parent_result = results[parent_result_id]
-                parent_result[parent_key] = None
+            _assign_to_parent(results, parent_result_id, parent_key, None)
             continue
 
         seen.add(obj_id)
 
-        # Handle dictionaries
+        # Process collections
         if isinstance(current_obj, dict):
-            result_dict = {}
-            results[obj_id] = result_dict
-
-            if parent_result_id is not None:
-                parent_result = results[parent_result_id]
-                parent_result[parent_key] = result_dict
-
-            for k, v in current_obj.items():
-                if not callable(v) and not k.startswith("__"):
-                    stack.append((v, obj_id, k, depth + 1))
-
-        # Handle lists
+            result = _process_dict_for_circular_refs(
+                current_obj, obj_id, depth, stack, results
+            )
+            _assign_to_parent(results, parent_result_id, parent_key, result)
         elif isinstance(current_obj, list):
-            result_list = [None] * len(current_obj)
-            results[obj_id] = result_list
-
-            if parent_result_id is not None:
-                parent_result = results[parent_result_id]
-                parent_result[parent_key] = result_list
-
-            for i, item in enumerate(current_obj):
-                stack.append((item, obj_id, i, depth + 1))
-
-        # Handle other types (convert to string)
+            result = _process_list_for_circular_refs(
+                current_obj, obj_id, depth, stack, results
+            )
+            _assign_to_parent(results, parent_result_id, parent_key, result)
         else:
+            # Handle other types (convert to string)
             str_repr = str(current_obj)
-            if parent_result_id is not None:
-                parent_result = results[parent_result_id]
-                parent_result[parent_key] = str_repr
-            else:
+            if parent_result_id is None:
                 return str_repr
+            _assign_to_parent(results, parent_result_id, parent_key, str_repr)
 
-    # Return the root result
     return results.get(id(obj), obj)
 
 
@@ -320,6 +343,22 @@ class ProcessingContext:
         self.runner = runner
         self.total_prompts = total_prompts
         self.job_t0 = job_t0
+
+
+def _score_prompt_with_runner(
+    runner: Any, prompt_context: Any, prompt_id: str, result_dict: Dict[str, Any]
+) -> bool:
+    """Score a prompt and store results. Returns True if scoring failed."""
+    scoring_failed = False
+    for score_result in runner._score_single_prompt(prompt_context):
+        if not score_result.success:
+            scoring_failed = True
+            log.error(
+                f"Scoring failed for scorer '{score_result.scorer_name}' on prompt '{prompt_id}'"
+            )
+        else:
+            result_dict[score_result.scorer_name] = score_result.raw_data
+    return scoring_failed
 
 
 def _process_prompt_result(
@@ -365,51 +404,24 @@ def _process_prompt_result(
         return current_prompt_result, failed_gen, failed_scoring_prompts
 
     # Handle successful generation or skip_generation mode
-    skip_generation = prompt.extras.get("skip_generation", False)
-
     if generated_image:
         current_prompt_result["image_id"] = generated_image.info["image_id"]
-
-        # Add source image info if present
         if prompt.image:
             current_prompt_result["source_image_uri"] = prompt.image
 
-        # Score with standardized runner
         image_path = generated_image.info["path"]
         prompt_context = create_prompt_context_from_legacy(
             prompt, generated_image, image_path
         )
-
-        scoring_failed = False
-        for score_result in context.runner._score_single_prompt(prompt_context):
-            if not score_result.success:
-                scoring_failed = True
-                log.error(
-                    f"Scoring failed for {score_result.scorer_name} on prompt {prompt.id}"
-                )
-            else:
-                # Store results in the legacy format for backward compatibility
-                current_prompt_result[score_result.scorer_name] = score_result.raw_data
-
-        if scoring_failed:
-            failed_scoring_prompts += 1
-    elif skip_generation:
-        # Score without generated image (scorer will load base image internally)
+    else:
+        # skip_generation mode: score without generated image
         prompt_context = create_prompt_context_from_legacy(prompt, None, None)
 
-        scoring_failed = False
-        for score_result in context.runner._score_single_prompt(prompt_context):
-            if not score_result.success:
-                scoring_failed = True
-                log.error(
-                    f"Scoring failed for {score_result.scorer_name} on prompt {prompt.id}"
-                )
-            else:
-                # Store results in the legacy format for backward compatibility
-                current_prompt_result[score_result.scorer_name] = score_result.raw_data
-
-        if scoring_failed:
-            failed_scoring_prompts += 1
+    # Score the prompt (works for both modes)
+    if _score_prompt_with_runner(
+        context.runner, prompt_context, prompt.id, current_prompt_result
+    ):
+        failed_scoring_prompts += 1
 
     return current_prompt_result, failed_gen, failed_scoring_prompts
 

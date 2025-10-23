@@ -5,13 +5,11 @@ Tests path validation, canonicalization, and security checks.
 """
 
 import os
-import tempfile
 from pathlib import Path
 
 import pytest
 
 from ssa.utils.security import (
-    SecurityError,
     canonicalize_path,
     is_path_safe,
     is_within_directory,
@@ -338,7 +336,7 @@ class TestSecurityIntegration:
             if data_dir.exists():
                 result = validate_directory(data_dir, purpose="corpus", must_exist=True)
                 assert result.is_dir()
-        except Exception as e:
+        except Exception:
             # If validation fails, that's also a valid test result
             # (means the directory doesn't exist or isn't set up)
             pass
