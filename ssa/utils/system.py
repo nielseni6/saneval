@@ -11,6 +11,7 @@ from pathlib import Path
 
 # from ssa.utils.git import git_info
 from ssa.utils.logging import get_log
+from ssa.utils.security import validate_file
 
 log = get_log(__file__)
 
@@ -152,12 +153,31 @@ def parse_config_arg(obj):
         except json.JSONDecodeError:
             raise ValueError(f"Invalid JSON format: {obj}")
 
-    # Try as file path
-    path = Path(obj)
-    if path.exists():
-        return json.loads(path.read_text())
+    # Try as file path with security validation
+    try:
+        # Check if it looks like a file path
+        path = Path(obj)
+        if path.exists() or "/" in obj or "\\" in obj or obj.endswith(".json"):
+            # Validate the path for security
+            validated_path = validate_file(
+                obj,
+                purpose="config",
+                must_exist=True,
+                allowed_extensions={".json", ".yaml", ".yml"},
+            )
+            return json.loads(validated_path.read_text())
+    except (ValueError, FileNotFoundError) as e:
+        # If it's clearly meant to be a file path but validation failed, raise the error
+        if "/" in obj or "\\" in obj or obj.endswith((".json", ".yaml", ".yml")):
+            raise ValueError(
+                f"Config file path validation failed: {obj}. "
+                f"Allowed directories: data/, project root. Error: {e}"
+            ) from e
 
-    raise ValueError(f"Invalid obj format: {obj}")
+    raise ValueError(
+        f"Invalid config format: {obj}. "
+        f"Expected 'key=value', JSON string, or path to config file."
+    )
 
 
 def get_subconfigs(configs, key):

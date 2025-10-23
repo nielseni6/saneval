@@ -11,6 +11,7 @@ import yaml
 
 from ssa.utils.base import DEFAULT_RANDOM_CHARS, hash_str_to_alphanumeric
 from ssa.utils.logging import get_log
+from ssa.utils.security import validate_file
 
 # Type alias for extras dictionary - allows common JSON-serializable types
 ExtrasType = Dict[str, Union[str, int, float, bool, List[Any], Dict[str, Any]]]
@@ -295,13 +296,22 @@ def get_corpus(key: str, validate_only: bool = False) -> Union[bool, Corpus]:
             return validate_corpus_file(local_path)
         return load_corpus_file(key, local_path)
 
-    # Try key as absolute/relative path
-    local_path = Path(key)
-    if local_path.exists():
+    # Try key as absolute/relative path with security validation
+    try:
+        # Validate path against whitelist (only allow corpus-related directories)
+        validated_path = validate_file(
+            key,
+            purpose="corpus",
+            must_exist=True,
+            allowed_extensions={".yaml", ".yml", ".json"},
+        )
         if validate_only:
-            return validate_corpus_file(local_path)
-        return load_corpus_file(key, local_path)
-
-    raise Exception(
-        f"Corpus {key} not found in data/prompts/ or as absolute/relative path"
-    )
+            return validate_corpus_file(validated_path)
+        return load_corpus_file(key, validated_path)
+    except (ValueError, FileNotFoundError) as e:
+        # Path validation failed or file not found
+        log.debug(f"Path validation failed for '{key}': {e}")
+        raise Exception(
+            f"Corpus '{key}' not found in allowed directories or invalid path. "
+            f"Allowed directories: data/prompts/, data/. Error: {e}"
+        ) from e

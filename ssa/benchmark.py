@@ -11,6 +11,7 @@ import argparse
 from ssa.benchmark_runner import benchmark_model, resolve_benchmark_config
 from ssa.scoring import SCORING_METHODS, SPATIAL
 from ssa.utils.logging import add_log_args, heading, log, process_log_args
+from ssa.utils.security import validate_directory
 from ssa.utils.system import parse_config_arg
 
 
@@ -86,13 +87,32 @@ def main():
     args = parser.parse_args()
     process_log_args(args)
 
+    # Validate input paths for security
+    try:
+        # Validate images directory (must exist and be readable)
+        images_dir = validate_directory(
+            args.images_dir, purpose="input", must_exist=True
+        )
+        log.info(f"Validated images directory: {images_dir}")
+
+        # Validate output directory (can be created)
+        output_dir = validate_directory(
+            args.output_dir, purpose="output", allow_create=True
+        )
+        log.info(f"Validated output directory: {output_dir}")
+
+    except (ValueError, FileNotFoundError, PermissionError) as e:
+        log.error(f"Path validation failed: {e}")
+        raise SystemExit(1) from e
+
+    # Parse config args (these are validated inside parse_config_arg if they're file paths)
     bench_config_overrides = parse_config_arg(args.bench_config)
     execution_config_overrides = parse_config_arg(args.execution_config)
 
     run_benchmarks(
-        args.output_dir,
+        str(output_dir),  # Convert Path to string for compatibility
         args.scoring,
-        args.images_dir,
+        str(images_dir),  # Convert Path to string for compatibility
         bench_config_overrides,
         execution_config_overrides,
     )
