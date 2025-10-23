@@ -16,7 +16,7 @@ pydantic>=2.0.0,<3.0.0
 jsonschema>=4.0.0,<5.0.0
 
 # Cloud providers
-google-genai>=0.3.0,<1.0.0
+google-genai>=0.3.0,<2.0.0
 google-api-core>=2.11.0,<3.0.0
 
 # Visualization
