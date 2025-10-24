@@ -4,7 +4,7 @@ Suite of benchmarks for evaluating generated image composition.
 ## Installation
 
 ### Prerequisites
-- Python 3.8 or higher
+- Python 3.9 or higher
 - pip (latest version recommended)
 
 ### Setup
