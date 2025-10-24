@@ -373,16 +373,22 @@ class PromptCache:
                     # Create a simple hash of the image
                     if hasattr(image, "tobytes"):
                         # For numpy arrays or PIL images
-                        image_hash = hashlib.md5(image.tobytes()).hexdigest()[:16]
+                        image_hash = hashlib.md5(
+                            image.tobytes(), usedforsecurity=False
+                        ).hexdigest()[:16]
                     elif isinstance(image, bytes):
-                        image_hash = hashlib.md5(image).hexdigest()[:16]
+                        image_hash = hashlib.md5(
+                            image, usedforsecurity=False
+                        ).hexdigest()[:16]
                     elif isinstance(image, str):
                         # For string representations (file paths, base64, etc.)
-                        image_hash = hashlib.md5(image.encode("utf-8")).hexdigest()[:16]
+                        image_hash = hashlib.md5(
+                            image.encode("utf-8"), usedforsecurity=False
+                        ).hexdigest()[:16]
                     else:
                         # For other types, convert to string
                         image_hash = hashlib.md5(
-                            str(image).encode("utf-8")
+                            str(image).encode("utf-8"), usedforsecurity=False
                         ).hexdigest()[:16]
                     params["image_hash"] = image_hash
                 except Exception as e:
@@ -390,7 +396,7 @@ class PromptCache:
                     # Fallback: use type and str representation
                     fallback_str = f"{type(image).__name__}:{str(image)[:100]}"
                     params["image_hash"] = hashlib.md5(
-                        fallback_str.encode("utf-8")
+                        fallback_str.encode("utf-8"), usedforsecurity=False
                     ).hexdigest()[:16]
 
                 # Mark that image was present

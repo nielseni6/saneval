@@ -28,7 +28,7 @@ def watermark_image(image, font_size=16):
 
 
 def image_from_url(url: str) -> Image.Image:
-    response = requests.get(url)
+    response = requests.get(url, timeout=30)
     return Image.open(BytesIO(response.content))
 
 

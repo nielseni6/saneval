@@ -72,8 +72,11 @@ def get_next_seeds(initial_seed, n):
 def cmd(command, echocmd=False, noisy=False, use_logger=True, check_code=True, cwd="."):
     """Run a shell command and return its output.
 
+    WARNING: This function uses shell=True which can be a security risk if used
+    with unsanitized user input. Ensure commands are validated before calling.
+
     Args:
-        command (str): Command to execute
+        command (str): Command to execute (MUST be validated/sanitized)
         noisy (bool): If True, prints output to stdout in realtime
         log (bool): If true, uses log
 
@@ -97,7 +100,7 @@ def cmd(command, echocmd=False, noisy=False, use_logger=True, check_code=True, c
     process = subprocess.Popen(
         command,
         cwd=cwd,
-        shell=True,
+        shell=True,  # nosec B602 - caller is responsible for input validation
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,

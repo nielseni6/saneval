@@ -257,7 +257,7 @@ def load_corpus_file(key: str, data_file: Union[str, Path]) -> Corpus:
 
     if data_file_suffix in {"yaml", "yml"}:
         with open(data_file, "r") as file:
-            data = yaml.load(file, Loader=yaml.FullLoader)
+            data = yaml.safe_load(file)
             corpus = Corpus(key, to_prompts_list(data))
             _inline[key] = corpus
             return corpus

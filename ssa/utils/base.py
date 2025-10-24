@@ -81,7 +81,7 @@ def get_base_tempdir() -> Path:
     """
     global _base_tempdir
     if _base_tempdir is None:
-        _base_tempdir = Path(os.getenv("SSA_TEMP_DIR", "/tmp/ssa"))
+        _base_tempdir = Path(os.getenv("SSA_TEMP_DIR", "/tmp/ssa"))  # nosec B108
         _base_tempdir.mkdir(parents=True, exist_ok=True)
     return _base_tempdir
 

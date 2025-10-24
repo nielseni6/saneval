@@ -55,7 +55,7 @@ def get_default_allowed_dirs(purpose: str = "read") -> Set[Path]:
             PROJECT_ROOT / "output",
             PROJECT_ROOT,  # Allow project root
             Path.cwd(),  # Allow current working directory
-            Path("/tmp"),  # Allow temp directory
+            Path("/tmp"),  # Allow temp directory  # nosec B108
         }
 
     elif purpose == "config":
