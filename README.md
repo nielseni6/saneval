@@ -49,7 +49,30 @@ export GOOGLE_API_KEY="your-api-key"
 
 ### Command Line
 
-Run benchmarks on a directory of images:
+Run benchmarks on a directory of images using different scoring methods:
+
+#### Numeracy Evaluation
+Evaluate counting and object quantities in images:
+
+```bash
+python ssa/benchmark.py \
+  --images-dir images/samples/numeracy \
+  --output-dir results/numeracy \
+  --scoring numeracy
+```
+
+#### Spatial Relationship Evaluation
+Evaluate spatial relationships between objects:
+
+```bash
+python ssa/benchmark.py \
+  --images-dir images/samples/spatial \
+  --output-dir results/spatial \
+  --scoring spatial
+```
+
+#### Attribute Binding Evaluation
+Evaluate object attributes and their bindings:
 
 ```bash
 python ssa/benchmark.py \
@@ -72,9 +95,9 @@ The debug configuration automatically uses the `saneval_env` Python interpreter.
 
 ### Available Scoring Methods
 
-- `od_attr_binding`: Object detection attribute binding evaluation
-- `spatial`: Spatial relationship evaluation
-- `numeracy`: Numeracy evaluation
+- `numeracy`: Count and quantity evaluation (e.g., "two cats", "three red apples")
+- `spatial`: Spatial relationship evaluation (e.g., "a cat next to a dog", "a bird on the top of a tree")
+- `od_attr_binding`: Object detection attribute binding evaluation (e.g., "a red car and a blue house")
 
 ## Project Structure
 
