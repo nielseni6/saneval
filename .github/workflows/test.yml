@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
+        python-version: ['3.8', '3.9', '3.10', '3.11']
 
     steps:
       - name: Checkout code
@@ -63,3 +63,36 @@ jobs:
 
       - name: Lint with flake8
         run: flake8 ssa/ tests/ --max-line-length=88 --extend-ignore=E203,W503,E501
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install security scanning tools
+        run: |
+          pip install bandit[toml] safety
+
+      - name: Run bandit security scan
+        run: |
+          bandit -r ssa/ -f json -o bandit-report.json || true
+          bandit -r ssa/ -ll
+
+      - name: Check for known security vulnerabilities with safety
+        run: |
+          pip install -e .
+          safety check --json --output safety-report.json || true
+          safety check
+
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
