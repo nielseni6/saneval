@@ -55,7 +55,7 @@ Run benchmarks on a directory of images:
 python ssa/benchmark.py \
   --images-dir images/samples/attribute_binding \
   --output-dir results/attribute_binding \
-  --scoring od-attr-binding
+  --scoring od_attr_binding
 ```
 
 ### VS Code Debugging
@@ -72,9 +72,9 @@ The debug configuration automatically uses the `saneval_env` Python interpreter.
 
 ### Available Scoring Methods
 
-- `od-attr-binding`: Object detection attribute binding evaluation
+- `od_attr_binding`: Object detection attribute binding evaluation
 - `spatial`: Spatial relationship evaluation
-- (Add other scoring methods as needed)
+- `numeracy`: Numeracy evaluation
 
 ## Project Structure
 
