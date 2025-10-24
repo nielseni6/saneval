@@ -1,9 +1,37 @@
-"""
-Numeracy Scorer Implementation.
+"""Numeracy Scorer Implementation.
 
-This module provides numeracy scoring functionality refactored from the original
-spatial_numeracy_eval.py SANEval implementation. It focuses specifically on
-counting and numerical evaluation of objects in images.
+This module provides numeracy scoring functionality for evaluating the accuracy
+of object counts in images. It assesses whether generated images contain the
+correct number of objects as specified in text prompts.
+
+The scorer uses a combination of:
+- LLM-based extraction to parse numerical requirements from prompts
+- Object detection models to identify and count objects in images
+- Scoring algorithms to compare expected vs actual counts
+
+Example:
+    Basic usage of the numeracy scorer::
+
+        from ssa.scorers.numeracy import NumeracyScorer, NumeracyConfig
+        from PIL import Image
+
+        # Initialize scorer
+        config = NumeracyConfig()
+        scorer = NumeracyScorer(config)
+
+        # Evaluate an image
+        image = Image.open("image.jpg")
+        image.info = {"path": "image.jpg"}
+        correct, score, issues = scorer.evaluate(image, "2 cats and 3 dogs")
+
+        print(f"Correct: {correct}")
+        print(f"Score: {score:.2f}")
+        print(f"Issues: {issues}")
+
+Note:
+    The scorer expects images to have an 'info' dictionary with a 'path' key.
+    This is typically set automatically when loading images through the
+    benchmark runner.
 """
 
 from typing import Any, Dict, List, Optional, Tuple
@@ -26,11 +54,58 @@ class NumeracyConfig(SpatialNumeracyConfig):
 
 
 class NumeracyScorer(SpatialNumeracyBase):
-    """
-    Numeracy scorer for evaluating object counting and numerical relationships in images.
+    """Numeracy scorer for evaluating object counting accuracy in images.
 
-    This class is refactored from the original SANEval implementation to focus specifically
-    on numeracy scoring functionality, returning only the numeracy score.
+    This scorer evaluates whether generated images contain the correct number of
+    objects as specified in text prompts. It uses LLM-based extraction to identify
+    numerical requirements and object detection models to count actual objects.
+
+    The scoring algorithm:
+        1. Extract expected object counts from prompt using LLM
+        2. Detect objects in image using object detection model
+        3. Normalize object names (e.g., "dog" and "dogs" → "dog")
+        4. Remove duplicate detections using IoU thresholding
+        5. Compare detected counts with expected counts
+        6. Calculate score: 0.5 for object presence + 0.5 for correct count
+
+    Attributes:
+        object_detector (ObjectDetectionModel): Model for detecting objects
+        object_attribute_extractor: LLM-based extractor for parsing prompts
+        filter_objects_list (List[str]): Objects to focus on during evaluation
+
+    Example:
+        Basic evaluation::
+
+            scorer = NumeracyScorer()
+            image = Image.open("cats.jpg")
+            image.info = {"path": "cats.jpg"}
+
+            # Prompt expects 2 cats
+            correct, score, issues = scorer.evaluate(image, "2 cats")
+
+            # Perfect match: correct=True, score=1.0, issues=[]
+            # One cat missing: correct=False, score=0.75, issues=["Expected 2 cats, found 1"]
+
+        With custom configuration::
+
+            config = NumeracyConfig(
+                od_model="yolov8x",
+                llm="gemini/2.5-flash",
+                debug=True
+            )
+            scorer = NumeracyScorer(config)
+
+        Using custom object detector::
+
+            from ssa.od import ObjectDetectionModel, YOLOV11
+            custom_od = ObjectDetectionModel(YOLOV11)
+            scorer = NumeracyScorer(object_detector=custom_od)
+
+    Note:
+        - Supports plural/singular normalization (dogs → dog)
+        - Handles common object aliases (boat/ship, tv/television)
+        - Removes duplicate detections based on IoU overlap
+        - Scores range from 0.0 (no match) to 1.0 (perfect match)
     """
 
     def __init__(
@@ -86,18 +161,74 @@ class NumeracyScorer(SpatialNumeracyBase):
     def evaluate(
         self, image, input_prompt, eval_criteria=None, context=None
     ) -> Tuple[bool, float, List[str]]:
-        """
-        Evaluate numeracy/counting in an image for a given prompt.
+        """Evaluate numeracy/counting accuracy in an image for a given prompt.
+
+        This is the main entry point for numeracy evaluation. It orchestrates
+        the complete evaluation workflow: object detection, count extraction,
+        comparison, and scoring.
 
         Args:
-            image: Image object with 'info' dictionary containing 'path' key
-            input_prompt: The prompt to evaluate against the image
+            image: PIL Image object with 'info' dict containing 'path' key.
+                The path is used for object detection.
+            input_prompt: Text prompt describing expected object counts.
+                Examples: "2 cats", "3 dogs and 1 cat", "five birds"
+            eval_criteria: Optional evaluation criteria (unused, for compatibility)
+            context: Optional context information (unused, for compatibility)
 
         Returns:
-            Tuple containing:
-                - numeracy_score: Float score for numerical accuracy
-                - non_conformity: List of missing/non-conforming objects
-                - correctness: Boolean indicating evaluation correctness
+            Tuple[bool, float, List[str]]: A tuple containing:
+                - correct (bool): True if counts match perfectly, False otherwise
+                - score (float): Numerical score from 0.0 to 1.0, where:
+                    * 1.0 = all objects present with correct counts
+                    * 0.5-0.99 = some objects correct, some incorrect
+                    * 0.0 = no objects detected or all counts wrong
+                - non_conformity (List[str]): List of discrepancies found,
+                    e.g., ["Expected 2 cats, found 1", "Expected 1 dog, found 0"]
+
+        Example:
+            Perfect match::
+
+                scorer = NumeracyScorer()
+                image = Image.open("2cats.jpg")  # Image with 2 cats
+                image.info = {"path": "2cats.jpg"}
+
+                correct, score, issues = scorer.evaluate(image, "2 cats")
+                # Returns: (True, 1.0, [])
+
+            Partial match::
+
+                image = Image.open("1cat.jpg")  # Image with only 1 cat
+                image.info = {"path": "1cat.jpg"}
+
+                correct, score, issues = scorer.evaluate(image, "2 cats")
+                # Returns: (False, 0.75, ["Expected 2 cats, found 1"])
+
+            Multiple objects::
+
+                image = Image.open("pets.jpg")  # 2 cats, 1 dog
+                image.info = {"path": "pets.jpg"}
+
+                correct, score, issues = scorer.evaluate(image, "2 cats and 1 dog")
+                # Returns: (True, 1.0, [])
+
+            No match::
+
+                image = Image.open("dogs.jpg")  # Only dogs, no cats
+                image.info = {"path": "dogs.jpg"}
+
+                correct, score, issues = scorer.evaluate(image, "2 cats")
+                # Returns: (False, 0.0, ["Expected 2 cats, found 0"])
+
+        Raises:
+            KeyError: If image.info doesn't contain 'path' key
+            ValueError: If image_path is invalid or inaccessible
+
+        Note:
+            - The scorer normalizes object names (e.g., "dogs" → "dog")
+            - Handles number words (e.g., "two" → 2) via LLM extraction
+            - Removes duplicate detections using IoU thresholding
+            - Score calculation: each object gets equal weight, split 50/50
+              between presence (0.5) and correct count (0.5)
         """
         numeracy_score, objs_unique, norm_objects = self.eval_metrics(
             image.info["path"], input_prompt
