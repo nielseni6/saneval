@@ -5,12 +5,9 @@ These tests verify the integration between scorers, object detection,
 and LLM components working together.
 """
 
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
-import torch
-from PIL import Image
 
 from ssa.od import ObjectDetectionModel
 from ssa.scorers.numeracy import NumeracyConfig, NumeracyScorer

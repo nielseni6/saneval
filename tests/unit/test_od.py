@@ -10,9 +10,7 @@ Tests cover:
 - Edge cases and validation
 """
 
-import json
-import os
-from unittest.mock import MagicMock, Mock, mock_open, patch
+from unittest.mock import Mock, mock_open, patch
 
 import pytest
 
@@ -22,7 +20,6 @@ from ssa.od import (
     MODEL_CONFIGS,
     YOLOEVERYTHING,
     YOLOV11,
-    YOLOV12,
     YOLOWORLD,
     ObjectDetectionModel,
     _get_yolo_class,
@@ -144,7 +141,7 @@ class TestObjectDetectionModelClassConfiguration:
         mock_model_class.return_value = mock_model_instance
         mock_get_class.return_value = mock_model_class
 
-        model = ObjectDetectionModel(YOLOWORLD, pred_classes="from_json")
+        ObjectDetectionModel(YOLOWORLD, pred_classes="from_json")
 
         # Verify set_classes was called
         mock_model_instance.set_classes.assert_called_once()
@@ -165,7 +162,7 @@ class TestObjectDetectionModelClassConfiguration:
         mock_model_class.return_value = mock_model_instance
         mock_get_class.return_value = mock_model_class
 
-        model = ObjectDetectionModel(YOLOEVERYTHING, pred_classes="unspecified")
+        ObjectDetectionModel(YOLOEVERYTHING, pred_classes="unspecified")
 
         # Verify set_classes was NOT called for unspecified
         mock_model_instance.set_classes.assert_not_called()
@@ -187,7 +184,7 @@ class TestObjectDetectionModelClassConfiguration:
         mock_model_class.return_value = mock_model_instance
         mock_get_class.return_value = mock_model_class
 
-        model = ObjectDetectionModel(YOLOEVERYTHING, pred_classes="from_json")
+        ObjectDetectionModel(YOLOEVERYTHING, pred_classes="from_json")
 
         # Verify set_classes was called with text_pe
         mock_model_instance.set_classes.assert_called_once()
@@ -225,7 +222,7 @@ class TestObjectDetectionModelMethods:
         mock_get_class.return_value = mock_model_class
 
         model = ObjectDetectionModel(YOLOV11, pred_classes="from_json")
-        result = model("test_image.jpg")
+        model("test_image.jpg")
 
         mock_model_instance.assert_called_once_with("test_image.jpg")
 

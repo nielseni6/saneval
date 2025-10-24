@@ -5,8 +5,7 @@ These tests verify the integration between VLM/LLM classes and their providers,
 caching systems, and trace collectors.
 """
 
-import io
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from PIL import Image
@@ -143,7 +142,7 @@ class TestVlmLlmIntegration:
 
             # Call the model
             with patch("ssa.vlm.get_global_cache", return_value=None):
-                response = llm.call(
+                llm.call(
                     "Test query",
                     use_cache=False,
                     scorer_name="test_scorer",
@@ -224,9 +223,7 @@ class TestVlmLlmIntegration:
         with patch.dict("ssa.vlm.LLM_VERSIONS", {"gemini/2.5-flash": mock_provider}):
             # Create LLM with config overrides
             config_overrides = {"max_tokens": 500}
-            llm = Llm(
-                "gemini/2.5-flash", warmup=False, config_overrides=config_overrides
-            )
+            Llm("gemini/2.5-flash", warmup=False, config_overrides=config_overrides)
 
             # Verify provider was called with overrides
             mock_provider.assert_called_once_with(

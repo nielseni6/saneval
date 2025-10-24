@@ -9,7 +9,7 @@ Tests cover:
 - Trace recording
 """
 
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from PIL import Image
@@ -206,7 +206,7 @@ class TestLlm:
         mock_provider.return_value = mock_instance
 
         with patch.dict(LLM_VERSIONS, {"test_llm": mock_provider}):
-            llm = Llm("test_llm", warmup=True)
+            Llm("test_llm", warmup=True)
             mock_instance.warmup.assert_called_once_with(wait=False)
 
     def test_llm_get_cache_stats(self, mock_provider):
@@ -361,7 +361,7 @@ class TestCachedModelCall:
         mock_cache.get.return_value = "cached_response"
 
         with patch("ssa.vlm.get_global_cache", return_value=mock_cache):
-            response = _cached_model_call(
+            _cached_model_call(
                 mock_model_instance,
                 "llm",
                 "test_query",
