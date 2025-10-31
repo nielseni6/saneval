@@ -55,16 +55,9 @@ class Prompt:
 
     # Optional - a URI for a source-image
     image: str = None
-    input_caption: str = None
-    output_caption: str = None
 
     # Use this to hold any extra metadata for prompts (JSON-serializable types only)
     extras: ExtrasType = field(default_factory=dict)
-
-    # For synthetically generated and extended prompts
-    num_extensions: int = None
-    extensions: List[str] = field(default_factory=list)
-    original: str = None
 
     def to_dict(self):
         return asdict(self)

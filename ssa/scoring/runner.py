@@ -202,9 +202,7 @@ def create_prompt_context_from_legacy(
         image_path=image_path,
         metadata={
             "categories": getattr(prompt_obj, "categories", []),
-            "extensions": getattr(prompt_obj, "extensions", []),
             "extras": getattr(prompt_obj, "extras", {}),
             "criteria": getattr(prompt_obj, "criteria", None),
-            "num_extensions": getattr(prompt_obj, "num_extensions", None),
         },
     )
