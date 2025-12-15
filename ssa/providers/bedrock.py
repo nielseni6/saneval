@@ -211,11 +211,19 @@ class BedrockProvider:
 
         Args:
             prompt: Formatted prompt
-            schema: JSON schema dict
+            schema: JSON schema dict or Pydantic model class
 
         Returns:
             Prompt with schema instructions inserted
         """
+        # Handle Pydantic models - convert to JSON schema
+        if hasattr(schema, "model_json_schema"):
+            # Pydantic v2
+            schema = schema.model_json_schema()
+        elif hasattr(schema, "schema"):
+            # Pydantic v1
+            schema = schema.schema()
+
         schema_str = json.dumps(schema, indent=2)
         structured_instruction = (
             f"\n\nYou must respond with valid JSON matching this exact schema:\n"

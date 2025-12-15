@@ -308,18 +308,24 @@ class TestTraceCollectionIntegration:
         mock_client.invoke_model.return_value = mock_bedrock_response
 
         trace_collector = ReasoningTraceCollector()
+        # Need to start a prompt trace before record_call will work
+        trace_collector.start_prompt("test_prompt_id", "Test prompt text")
+
         llm = Llm(LLAMA_4_MAVERICK, warmup=False, trace_collector=trace_collector)
 
         response = llm.call(
             "Test query", scorer_name="test_scorer", step_description="test_step"
         )
 
+        # Finish the prompt trace
+        trace_collector.finish_prompt()
+
         assert response is not None
         # Verify trace was recorded
         traces = trace_collector.get_traces()
         assert len(traces) > 0
-        assert traces[0]["model_key"] == LLAMA_4_MAVERICK
-        assert traces[0]["scorer_name"] == "test_scorer"
+        assert traces[0]["calls"][0]["model_key"] == LLAMA_4_MAVERICK
+        assert traces[0]["calls"][0]["scorer_name"] == "test_scorer"
 
 
 class TestErrorHandlingIntegration:

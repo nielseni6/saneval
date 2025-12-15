@@ -111,9 +111,11 @@ class GeminiProvider:
             )
 
         # Add thinking config for reasoning models
-        kwargs["thinking_config"] = genaitypes.ThinkingConfig(
-            include_thoughts=include_thoughts, thinking_budget=thinking_budget
-        )
+        # Only pass thinking_budget if it's >= 0 (API doesn't accept -1)
+        thinking_config_params = {"include_thoughts": include_thoughts}
+        if thinking_budget >= 0:
+            thinking_config_params["thinking_budget"] = thinking_budget
+        kwargs["thinking_config"] = genaitypes.ThinkingConfig(**thinking_config_params)
 
         # Add safety settings
         kwargs["safety_settings"] = [
