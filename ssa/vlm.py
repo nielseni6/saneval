@@ -15,6 +15,7 @@ from typing import Any, Dict, Optional, Union
 from PIL import Image
 
 from ssa.caching import get_cache_statistics, get_global_cache, setup_caching
+from ssa.providers.bedrock import LLAMA_4_MAVERICK, BedrockProvider
 from ssa.providers.gemini import GEMINI_2_5_FLASH
 from ssa.providers.gemini import SUPPORTED_VERSIONS as GEMINI_SUPPORTED_VERSIONS
 from ssa.providers.gemini import GeminiProvider
@@ -23,6 +24,7 @@ from ssa.utils.logging import get_log
 
 VLM_VERSIONS = {}
 VLM_VERSIONS.update({k: GeminiProvider for k in GEMINI_SUPPORTED_VERSIONS})
+VLM_VERSIONS.update({LLAMA_4_MAVERICK: BedrockProvider})
 
 DEFAULT_VLM_VERSION = GEMINI_2_5_FLASH
 DEFAULT_LLM_VERSION = GEMINI_2_5_FLASH

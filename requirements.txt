@@ -17,6 +17,8 @@ jsonschema>=4.0.0,<5.0.0
 # Cloud providers
 google-genai>=0.3.0,<1.0.0  # Google Gemini API
 google-api-core>=2.11.0,<3.0.0  # Google API Core
+boto3>=1.34.0,<2.0.0  # AWS SDK for Bedrock
+botocore>=1.34.0,<2.0.0  # AWS SDK Core
 
 # Visualization
 matplotlib>=3.7.0,<4.0.0

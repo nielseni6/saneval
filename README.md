@@ -31,7 +31,7 @@ This will automatically install all required dependencies from requirements.txt.
 
 ## Authentication Setup
 
-SANEval uses Google Gemini as its VLM/LLM provider.
+SANEval supports multiple VLM/LLM providers:
 
 ### Google Gemini
 
@@ -44,6 +44,43 @@ gcloud auth application-default login
 ```bash
 export GOOGLE_API_KEY="your-api-key"
 ```
+
+### AWS Bedrock (Llama 4 Models)
+
+SANEval now supports Llama 4 Maverick via AWS Bedrock. See [docs/aws_setup.md](docs/aws_setup.md) for detailed setup instructions.
+
+**Quick Start:**
+
+```bash
+# Option 1: Environment Variables (CI/CD)
+export AWS_ACCESS_KEY_ID=your_access_key
+export AWS_SECRET_ACCESS_KEY=your_secret_key
+export AWS_DEFAULT_REGION=us-east-1
+
+# Option 2: AWS Profile (Local Development)
+export AWS_PROFILE=your_profile_name
+export AWS_DEFAULT_REGION=us-east-1
+```
+
+**Supported Models:**
+- `bedrock/llama-4-maverick-17b-instruct` - Llama 4 Maverick (17B parameters)
+  - Vision support: ✅ Yes (multimodal)
+  - Structured output: ✅ Via prompt engineering
+  - Max tokens: 2048 (configurable)
+
+**Usage Example:**
+
+```python
+from ssa.vlm import Vlm
+from ssa.providers.bedrock import LLAMA_4_MAVERICK
+from PIL import Image
+
+vlm = Vlm(LLAMA_4_MAVERICK)
+image = Image.open("photo.jpg")
+response = vlm.call("Describe this image", image=image)
+```
+
+For more examples, see `examples/bedrock_llama_examples.py`.
 
 ## Usage
 
@@ -110,3 +147,20 @@ ssa/
 ├── utils/               # Utility functions
 └── data/                # Data files (e.g., object categories)
 ```
+
+
+## Supported Models
+
+### Google Gemini Models
+- `gemini/2.5-flash` - Fast and efficient (default)
+- `gemini/2.5-pro` - Most capable
+- `gemini/2.5-flash-lite-preview` - Lightweight preview
+
+### AWS Bedrock Models
+- `bedrock/llama-4-maverick-17b-instruct` - Llama 4 Maverick (17B parameters)
+  - Vision support: ✅
+  - Structured output: ✅ (prompt engineering)
+  - Cost tracking: ✅
+
+For detailed AWS setup instructions, see [docs/aws_setup.md](docs/aws_setup.md).
+
