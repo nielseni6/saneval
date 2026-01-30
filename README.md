@@ -29,6 +29,8 @@ pip install -e .
 
 This will automatically install all required dependencies from requirements.txt.
 
+Note: You will also need to generate the images before using this script. Prompt sets used to generate our paper results are linked [[SANEval-Simple]([url](https://huggingface.co/datasets/nielseni6/SANEval-Simple)), [SANEval-Hard]([url](https://huggingface.co/datasets/nielseni6/SANEval-Hard))]
+
 ## Authentication Setup
 
 SANEval supports multiple VLM/LLM providers:
