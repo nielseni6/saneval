@@ -18,7 +18,7 @@ If you use SANEval, please cite:
 
 ```bibtex
 @inproceedings{pramanik2026saneval,
-  title     = {{SANEval}: Open-Vocabulary Compositional Benchmarks with Failure-mode Diagnosis},
+  title     = {SANEval: Open-Vocabulary Compositional Benchmarks with Failure-mode Diagnosis},
   author    = {Pramanik, Rishav and Nielsen, Ian E. and Smith, Jeff and Pandit, Saurav and Ramachandran, Ravi P. and Yin, Zhaozheng},
   booktitle = {Advances in Neural Information Processing Systems (NeurIPS), Evaluations and Datasets Track},
   year      = {2026},
