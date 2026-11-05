@@ -248,7 +248,7 @@ The code in this repository is released under the [Apache License 2.0](LICENSE).
 
 ## Contact
 
-- Ian E. Nielsen — iannielsen@live.com
-- Rishav Pramanik — rpramanik@cs.stonybrook.edu
+- Ian E. Nielsen — iannielsen [at] live.com
+- Rishav Pramanik — rpramanik [at] cs.stonybrook.edu
 
 Please open a GitHub issue for bugs or feature requests.
